@@ -13,6 +13,7 @@ import edu.wpi.cscore.VideoSink;
 import edu.wpi.cscore.VideoMode.PixelFormat;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.SPI.Port;
 import edu.wpi.first.wpilibj.PowerDistributionPanel;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -28,6 +29,7 @@ import frc.Mechanisms.CatzDriveTrain;
 import frc.Mechanisms.CatzIndexer;
 import frc.Mechanisms.CatzIntake;
 import frc.Mechanisms.CatzShooter;
+import com.kauailabs.navx.frc.AHRS;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -50,6 +52,8 @@ public class Robot extends TimedRobot
 
   public static DataCollection dataCollection;
   public static CatzLog        catzLog;
+
+  public static AHRS navx;
 
   // Xbox Controllers
   private static XboxController xboxDrv;
@@ -91,6 +95,9 @@ public class Robot extends TimedRobot
     driveTrain = new CatzDriveTrain();
     intake     = new CatzIntake();
     auton      = new CatzAutonomous();   
+    
+    navx = new AHRS(Port.kMXP, (byte)200);
+    navx.reset();
     
     pdp = new PowerDistributionPanel();
 
@@ -167,15 +174,17 @@ public class Robot extends TimedRobot
   public void autonomousInit() 
   {
     driveTrain.shiftToHighGear();
-    
+    auton.driveStraight(100, 10, 1000);
+    auton.PIDturn(1800, 5, 0.45);
     dataCollection.dataCollectionInit(dataArrayList);
     dataCollectionTimer.reset();
     dataCollectionTimer.start();
     dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_STRAIGHT);
+    //dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_TURN);
     dataCollection.startDataCollection();
     
     //auton.run(0.5);
-    //auton.driveStraight(50, 4, 10000);
+    
     //shooter.autonomousOn();
   }
 
@@ -183,8 +192,8 @@ public class Robot extends TimedRobot
   public void autonomousPeriodic() 
   {
    //// driveTrain.drvTrainLtBack.set(0.3);///use this to test
-    //driveTrain.drvTrainMtrCtrlLTFrnt.set(0.3);
-    driveTrain.drvTrainLT.set(0.3);
+    //driveTrain.drvTrainMtrCtrlLTBack.set(0.3);
+    //driveTrain.drvTrainLT.set(0.3);
     //auton.driveStraight(30.0, 0.5, 10);
 
   }

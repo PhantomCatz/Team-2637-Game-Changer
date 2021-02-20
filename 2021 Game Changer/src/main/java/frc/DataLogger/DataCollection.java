@@ -44,6 +44,7 @@ public class DataCollection
     public final int LOG_ID_DRV_TURN_PID       = 4;
     public final int LOG_ID_SHOOTER            = 5;
     public final int LOG_ID_DRV_STRAIGHT       = 6;
+    public final int LOG_ID_DRV_TURN           = 7;
 
     public boolean isFirst;
     public boolean validLogID = true;
@@ -55,8 +56,8 @@ public class DataCollection
     private final String LOG_HDR_DRV_TURN_PID = "Undefined";
     private final String LOG_HDR_SHOOTER = "time, pdp-v, shtr-A-v, shtr-B-v, shtr-A-I, shtr-B-I, shtr-A-T, shtr-B-T, shtr-fwsv, shtr-A-pwr, shtr-B-pwr";
     private final String LOG_HDR_DRV_STRAIGHT = //"pid-p,pid-i,pid-d,pid-f,pid-iz,cnt-to-in,in-hi-gear,trgt-dst" +
-                                                "time, tarVel, lt-curr-Vel, lt-vel-er, lt-enc-cnt, dist";
-
+                                                "time, tarVel, rt-curr-Vel, rt-vel-er, rt-enc-cnt,lt-curr-Vel,lt-vel-er,lt-enc-cnt dist";
+    private final String LOG_HDR_DRV_TURN = "cur-time, del-time, cur-ang, cur-err, del-error, curr-pow";
     public String logStr;
 
     public void setLogDataID(final int dataID)
@@ -108,6 +109,7 @@ public class DataCollection
 
     public void printInitialData()
     {
+        CatzLog data;
         double data1  =          Robot.driveTrain.PID_P;
         double data2  =          Robot.driveTrain.PID_I;
         double data3  =          Robot.driveTrain.PID_D;
@@ -116,6 +118,16 @@ public class DataCollection
         double data6  =          Robot.driveTrain.encCountsToInches;
         double data7  =          Robot.driveTrain.currentDrvTrainGear;
         double data8  =          Robot.auton.distanceGoal;
+        double data9 = -999.0;
+        double data10 = -999.0;
+        double data11 = -999.0;
+        double data12 = -999.0;
+        double data13 = -999.0;
+        double data14 = -999.0;
+        double data15 = -999.0;
+        double data16 = -999.0;
+        data = new CatzLog( data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15,data16);
+        logData.add(data);
     }
 
     public void collectData(final int dataID)
@@ -199,9 +211,9 @@ public class DataCollection
                 
             case LOG_ID_SHOOTER:
             case LOG_ID_DRV_STRAIGHT:
-                 isFirst = true;
                 break;
-
+            case LOG_ID_DRV_TURN:
+                break;
            
 
 
@@ -245,6 +257,8 @@ public class DataCollection
             case LOG_ID_DRV_STRAIGHT:
                 pw.printf(LOG_HDR_DRV_STRAIGHT);
                 break;
+            case LOG_ID_DRV_TURN:
+                pw.printf(LOG_HDR_DRV_TURN);
             default :
                 pw.printf("Invalid Log Data ID");            
 
