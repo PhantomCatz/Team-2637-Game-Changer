@@ -5,22 +5,22 @@ import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 
 public class CatzIntake
 {
-    public CANSparkMax deployMC;
+    public CANSparkMax intakeDeployMC;
 
-    private final int DEPLOY_MC_ID = 30; 
+    private final int INTAKE_DEPLOY_MC_CAN_ID = 30; 
 
     public CatzIntake()
     {
-        deployMC = new CANSparkMax(DEPLOY_MC_ID, MotorType.kBrushless);
+        intakeDeployMC = new CANSparkMax(INTAKE_DEPLOY_MC_CAN_ID, MotorType.kBrushless);
     }
 
     public void deployIntake()
     {
-        deployMC.set(1.0);
+        intakeDeployMC.set(1.0);
     }
 
     public void retractIntake()
     {
-        deployMC.set(-1.0);
+        intakeDeployMC.set(-1.0);
     }
 }
