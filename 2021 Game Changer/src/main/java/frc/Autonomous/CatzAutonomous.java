@@ -42,6 +42,8 @@ public class CatzAutonomous
 	/***************************************************************************
 	 * PID Turn Variables
 	 ***************************************************************************/
+    public static CatzPID turnPid;
+
 	static Timer functionTimer;
     static Timer pdTimer;
     
@@ -247,25 +249,18 @@ public class CatzAutonomous
 		Robot.navx.reset();
 		Timer.delay(NAVX_RESET_WAIT_TIME);
 
-		pdTimer       = new Timer();
+        turnPid = new CatzPID();
+		pdTimer = new Timer();
 		functionTimer = new Timer();
 		functionTimer.reset();
-		functionTimer.start(); 
+        functionTimer.start();
 
-		boolean done      = false;
-		boolean firstTime = true;
+		boolean done = false;
 
-		setPidValues(degreesToTurn);
-
-		previousError = 0.0;
-		totalError    = 0.0;
+		setPidValues(degreesToTurn, turnPid);
 
 		currentAngle  = Robot.navx.getAngle();
 		targetAngle   = degreesToTurn + currentAngle;
-		currentError  = targetAngle   - currentAngle;
-
-		targetAngleAbs = Math.abs(targetAngle);
-
 
 		printDebugInit();
 		printDebugHeader();
@@ -279,115 +274,25 @@ public class CatzAutonomous
 			pdTimer.stop();
 			pdTimer.reset();
 			pdTimer.start();
+            
+            turnPid.setCommand((float)targetAngle);
+            turnPid.setFeedback((float)currentAngle);
 
-			currentAngleAbs = Math.abs(currentAngle);
-
-
-			// calculates proportional term
-			currentError = targetAngle - currentAngle;
-
-			if (Math.abs(currentError) < PID_TURN_THRESHOLD) {
-				done = true;
-			} else {
-				if (functionTimer.get() > timeoutSeconds) {
-					done = true;
-				} else {
-					/************************************************************
-					 * Calculate derivative term If this is the first time through the loop, we
-					 * don't have a previousError or previouisDerivative value, so we will just set
-					 * derivative to zero.
-					 ************************************************************/
-					deltaError = currentError - previousError;
-
-					if (firstTime == false) {
-
-						/*************************************************************
-						 * Filter out invalid values (noise) as we don't want the control loop to react
-						 * to these. Invalid values can occur due to mechanical imperfections causing
-						 * the drivetrain to bind/release as it is turning, missed samples, etc. When
-						 * the control loop reacts to these unexpected jumps, it will lead to large
-						 * swings in power as it tries to correct for a large intermittent error that
-						 * comes & goes. This may be seen as the robot shaking during the turn.
-						 *
-						 * An invalid value is characterized as one o - jumping to zero when we are not
-						 * close to targetAngle - Change in delta error has exceeded a threshold
-						 *
-						 * If we have an invalid value, use the previous derivative value.
-						 *************************************************************/
-						if ((deltaError == 0.0) && (Math.abs(currentError) > 3.0)) {
-							derivative = previousDerivative;
-						} else {
-
-							if (Math.abs(deltaError) > PID_TURN_DELTAERROR_THRESHOLD_HI) {
-								derivative = previousDerivative;
-
-							} else {
-								/**********************************************************
-								 * We have a good deltaError value. Filter the derivative value to smooth out
-								 * jumps in derivative value
-								 **********************************************************/
-								derivative = PID_TURN_FILTER_CONSTANT * previousDerivative
-										+ ((1 - PID_TURN_FILTER_CONSTANT) * (deltaError / deltaT));
-							}
-						}
-					} else {
-						firstTime = false;
-						derivative = 0;
-					}
-
-					// Save values for next iteration
-					previousDerivative = derivative;
-					previousError      = currentError;
-
-					/*******************************************************************
-					 * Calculate integral term
-					 *
-					 * Check if we are entering saturation. If we are cap totalError at max value
-					 * (make sure the integral term doesn't get too big or small)
-					totalError += currentError * deltaT;
-					if (totalError >= PID_TURN_INTEGRAL_MAX)
-						totalError = PID_TURN_INTEGRAL_MAX;
-					if (totalError <= PID_TURN_INTEGRAL_MIN)
-						totalError = PID_TURN_INTEGRAL_MIN;
-					 *******************************************************************/
-
-					/*******************************************************************
-					 * Calculates drivetrain power
-					 *******************************************************************/
-                    power = PID_TURN_POWER_SCALE_FACTOR
-                            * ((pidTurnkP * currentError) + (PID_TURN_KI * totalError) + (PID_TURN_KD * derivative));
-
-					// Verify we have not exceeded max power when turning right or left
-					if (power > DRIVE_MAX_POS_POWER)
-						power = DRIVE_MAX_POS_POWER;
-
-					if (power < DRIVE_MAX_NEG_POWER)
-						power = DRIVE_MAX_NEG_POWER;
-
-					/**********************************************************************
-					 * We need to make sure drivetrain power doesn't get too low but we also need to
-					 * allow the robot to gradually brake. The brake condition is defined as when
-					 * deltaError is > PID_TURN_DELTAERROR_THRESHOLD_LO If deltaError is <
-					 * PID_TURN_DELTAERROR_THRESHOLD_LO, then we will set power to
-					 * PID_TURN_MIN_xxx_POWER.
-					 **********************************************************************/
-					if (power >= 0.0) {
-						if (power < PID_TURN_MIN_POS_POWER && Math.abs(deltaError) < PID_TURN_DELTAERROR_THRESHOLD_LO)
-							power = PID_TURN_MIN_POS_POWER;
-					} else if (power < 0.0) {
-						if (power > PID_TURN_MIN_NEG_POWER && Math.abs(deltaError) < PID_TURN_DELTAERROR_THRESHOLD_LO)
-							power = PID_TURN_MIN_NEG_POWER;
-					}
-
-					/*******************************************************************
-					 * Cmd robot to turn at new power level Note: Power will be positive if turning
-					 * right and negative if turning left
-					 *******************************************************************/
-					Robot.driveTrain.setTargetPower(Math.min(power, maxPower));
-					printDebugData();
-					Timer.delay(loopDelay);
-				}
-			}
+            if (functionTimer.get() > timeoutSeconds) {
+                done = true;
+            } else {
+                turnPid.calc_pid((float)deltaT);
+                /*******************************************************************
+                 * Cmd robot to turn at new power level Note: Power will be positive if turning
+                 * right and negative if turning left
+                 *******************************************************************/
+                //documentation states that the output value is the derivative of the input values 
+                //so I just assumed I could multiply the delta time to integrate it.
+                double outputPower = turnPid.getOutput() * deltaT; 
+                Robot.driveTrain.setTargetPower(outputPower);
+                printDebugData();
+                Timer.delay(loopDelay);
+            }
 		}
 
 		/**********************************************************************
@@ -395,11 +300,11 @@ public class CatzAutonomous
 		 * Print out last set of debug data (note that this may not be a complete set of
 		 * data) - Stop timers
 		 **********************************************************************/
-	currentAngle = Robot.navx.getAngle();
-	printDebugData();
+	    currentAngle = Robot.navx.getAngle();
+	    printDebugData();
 		Robot.driveTrain.setTargetPower(0.0); // makes robot stop
-	currentAngle = Robot.navx.getAngle();
-	printDebugData();
+	    currentAngle = Robot.navx.getAngle();
+	    printDebugData();
 
 		functionTimer.stop();
 		pdTimer.stop();
@@ -451,6 +356,68 @@ public class CatzAutonomous
             pidTurnkP = 0.080;  //PID_TURN_KP;
             pidTurnkD = 0.030;  //PID_TURN_KD;
             PID_TURN_THRESHOLD = 0.5;
+            loopDelay = 0.010;
+        }
+
+    }   //End of setPidValues()
+
+    public static void setPidValues(double degreesToTurn, CatzPID pid) {
+        double degreesToTurnAbs;
+
+        degreesToTurnAbs = Math.abs(degreesToTurn);
+
+        if (degreesToTurnAbs <= 25.0) {
+            //pidTurnkP = 0.090;
+            pid.setPgain(0.090f);
+            //pidTurnkD = 0.024;
+            pid.setDgain(0.024f);
+        }
+        if (degreesToTurnAbs <= 30.0) {
+            //pidTurnkP = 0.110;   //0.126 at 12.0 V;
+            pid.setPgain(0.110f);
+            //pidTurnkD = 0.026;
+            pid.setDgain(0.026f);
+            //PID_TURN_THRESHOLD = 0.75;
+            pid.setDeadband(0.75f);
+            loopDelay = 0.007;
+        }
+        else if (degreesToTurnAbs <= 35.0) {
+            //pidTurnkP = 0.090;
+            pid.setPgain(0.090f);
+            //pidTurnkD = 0.020;
+            pid.setDgain(0.020f);
+        }
+        else if (degreesToTurnAbs <= 40.0) {
+            //pidTurnkP = 0.086;
+            pid.setPgain(0.086f);
+            //pidTurnkD = 0.024;
+            pid.setDgain(0.024f);
+        }
+        else if (degreesToTurnAbs <= 45.0) {
+            //pidTurnkP = 0.090;
+            pid.setPgain(0.090f);
+            //pidTurnkD = 0.030;
+            pid.setDgain(0.030f);
+            //PID_TURN_THRESHOLD = 0.75;
+            pid.setDeadband(0.75f);
+            loopDelay = 0.007;
+        }
+        else if (degreesToTurnAbs <= 50.0) {
+            //pidTurnkP = 0.100;
+            pid.setPgain(0.100f);
+            //pidTurnkD = 0.028;
+            pid.setDgain(0.028f);
+            //PID_TURN_THRESHOLD = 0.75;
+            pid.setDeadband(0.75f);
+            loopDelay = 0.007;
+        }
+        else { //if degreesToTurnAbs > 50.0
+            //pidTurnkP = 0.080;  //PID_TURN_KP;
+            pid.setPgain(0.080f);
+            //pidTurnkD = 0.030;  //PID_TURN_KD;
+            pid.setDgain(0.030f);
+            //PID_TURN_THRESHOLD = 0.5;
+            pid.setDeadband(0.5f);
             loopDelay = 0.010;
         }
 
