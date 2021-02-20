@@ -26,7 +26,8 @@ public class CatzAutonomous
     public double angleGoal;
     public double angleToTurn;
 
-    public double currentEncCount;
+    public double currentEncCountRt;
+    public double currentEncCountLt;
     public double turnRateRadians;
 
     public double r1;
@@ -73,7 +74,6 @@ public class CatzAutonomous
 
     public double targetVelocity = 0.0;
 
-    
 
     public CatzAutonomous()
     {
@@ -159,17 +159,20 @@ public class CatzAutonomous
         boolean completed = false;
         boolean done      = false;
         double distanceRemaining;
-        double currentVelocity  = 0.0;
+        double currentVelocityRt  = 0.0;
+        double currentVelocityLt  = 0.0;
         double deltaCounts;
         double currentTime = 0.0;
         double halfWay = distanceGoal * 0.5;
-
+        
        while(done == false)
        {
-            currentEncCount = Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);//for left and right
-            currentVelocity = Robot.driveTrain.getIntegratedEncVelocity("RT"); //for left and right
+            currentEncCountRt = Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);//for left and right
+            currentEncCountLt =Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
+            currentVelocityRt = Robot.driveTrain.getIntegratedEncVelocity("RT"); //for left and right
+            currentVelocityLt = Robot.driveTrain.getIntegratedEncVelocity("LT");
 
-            deltaCounts = currentEncCount - initialEncoderCount;
+            deltaCounts = currentEncCountRt - initialEncoderCount;
             distanceMoved = Math.abs((double) (deltaCounts * Robot.driveTrain.encCountsToInches) );
             
             distanceRemaining = distanceGoal - distanceMoved; //distance in inches (error)
@@ -205,13 +208,20 @@ public class CatzAutonomous
                     done = true;
                 }
             }
-                //replace w/log
-                data = new CatzLog(currentTime, targetVelocity, currentVelocity,
+            if (Robot.dataCollection.isFirst == true)
+            {
+                Robot.dataCollection.printInitialData();
+                Robot.dataCollection.isFirst = false;
+            }
+            else 
+            {
+                data = new CatzLog(currentTime, targetVelocity, currentVelocityRt,
                                                                 Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getClosedLoopError(0), 
-                                                                currentEncCount, distanceRemaining, 
-                                                                -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0);
-
+                                                                currentEncCountRt, currentVelocityLt, Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getClosedLoopError(0), currentEncCountLt, distanceRemaining, 
+                                                                -999.0, -999.0, -999.0, -999.0, -999.0,-999.0, -999.0);
                 Robot.dataCollection.logData.add(data);
+            }
+           
                 /*
                 System.out.println(currentTime + "," +
                                targetVelocity + "," +

@@ -45,13 +45,17 @@ public class DataCollection
     public final int LOG_ID_SHOOTER            = 5;
     public final int LOG_ID_DRV_STRAIGHT       = 6;
 
+    public boolean isFirst;
+    public boolean validLogID = true;
+
     private final String LOG_HDR_DRV_TRAIN = "time,pdp-v,dt-lf-I,dt-lb-I,dt-rf-I,dt-rb-I,dt-lf-T,dt-lb-T,dt-rf-T,dt-rb-T,dt-l-ie,dt-r-ie,dt-l-ee,dt-r-ee,dt-l-v,dt-r-v";
     private final String LOG_HDR_DRV_STRAIGHT_PID  = "pid-p,pid-i,pid-d,pid-f,pid-iz,cnt-to-in,in-hi-gear,trgt-dst" +
                                                            "tarVel, lt-acc-Vel, rt-acc-vel, lt-vel-er, rt-vel-er,lt-enc-ct,rt-enc-ct,dist";
     private final String LOG_HDR_DRV_DISTANCE_PID = "Undefined";
     private final String LOG_HDR_DRV_TURN_PID = "Undefined";
     private final String LOG_HDR_SHOOTER = "time, pdp-v, shtr-A-v, shtr-B-v, shtr-A-I, shtr-B-I, shtr-A-T, shtr-B-T, shtr-fwsv, shtr-A-pwr, shtr-B-pwr";
-    private final String LOG_HDR_DRV_STRAIGHT = "time, tarVel, lt-acc-Vel, rt-acc-vel, lt-vel-er, rt-vel-er,lt-enc-ct,rt-enc-ct,dist";
+    private final String LOG_HDR_DRV_STRAIGHT = //"pid-p,pid-i,pid-d,pid-f,pid-iz,cnt-to-in,in-hi-gear,trgt-dst" +
+                                                "time, tarVel, lt-curr-Vel, lt-vel-er, lt-enc-cnt, dist";
 
     public String logStr;
 
@@ -102,6 +106,18 @@ public class DataCollection
         logDataValues = false; 
     }
 
+    public void printInitialData()
+    {
+        double data1  =          Robot.driveTrain.PID_P;
+        double data2  =          Robot.driveTrain.PID_I;
+        double data3  =          Robot.driveTrain.PID_D;
+        double data4  =          Robot.driveTrain.PID_F;
+        double data5  =          Robot.driveTrain.PID_IZ;
+        double data6  =          Robot.driveTrain.encCountsToInches;
+        double data7  =          Robot.driveTrain.currentDrvTrainGear;
+        double data8  =          Robot.auton.distanceGoal;
+    }
+
     public void collectData(final int dataID)
     {
         CatzLog data;
@@ -122,7 +138,7 @@ public class DataCollection
         double data15 = -999.0;
         double data16 = -999.0;
 
-        boolean validLogID = true;
+        
 
         switch (dataID) 
         {
@@ -183,7 +199,7 @@ public class DataCollection
                 
             case LOG_ID_SHOOTER:
             case LOG_ID_DRV_STRAIGHT:
-            
+                 isFirst = true;
                 break;
 
            
@@ -193,14 +209,20 @@ public class DataCollection
                 validLogID = false;
 
         }
-
-        if(validLogID == true) 
+        
+        if (isFirst == true)
+        {
+            printInitialData();
+            isFirst = false;
+        }
+        else if(validLogID == true) 
         {
             data = new CatzLog(Robot.dataCollectionTimer.get(), data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15);
             logData.add(data);
         }
     }
-
+    
+    
     public void writeHeader(PrintWriter pw) 
     {
         switch (logDataID)
