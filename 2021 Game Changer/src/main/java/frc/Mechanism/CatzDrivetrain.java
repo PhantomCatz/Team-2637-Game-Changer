@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 
-public class CatzDrivetrain
+public class CatzDriveTrain
 {
     public WPI_TalonFX drvTrainMtrCtrlLTFrnt;
     public WPI_TalonFX drvTrainMtrCtrlLTBack;
@@ -43,7 +43,7 @@ public class CatzDrivetrain
     public CatzDriveTrain()
     {
         drvTrainMtrCtrlLTFrnt = new WPI_TalonFX(DRVTRAIN_MC_LT_FRNT_CAN_ID);
-        drvTrainMtrCtrlLTBack = new WPI_TalonFX(DRVTRAIN_MC_LT_BACK_CAN_ID)
+        drvTrainMtrCtrlLTBack = new WPI_TalonFX(DRVTRAIN_MC_LT_BACK_CAN_ID);
         
         drvTrainMtrCtrlRTFrnt = new WPI_TalonFX(DRVTRAIN_MC_RT_FRNT_CAN_ID);
         drvTrainMtrCtrlRTBack = new WPI_TalonFX(DRVTRAIN_MC_RT_BACK_CAN_ID);
