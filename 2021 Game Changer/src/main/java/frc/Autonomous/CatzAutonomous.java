@@ -286,9 +286,7 @@ public class CatzAutonomous
                  * Cmd robot to turn at new power level Note: Power will be positive if turning
                  * right and negative if turning left
                  *******************************************************************/
-                //documentation states that the output value is the derivative of the input values 
-                //so I just assumed I could multiply the delta time to integrate it.
-                double outputPower = turnPid.getOutput() * deltaT; 
+                double outputPower = turnPid.getOutput(); 
                 Robot.driveTrain.setTargetPower(outputPower);
                 printDebugData();
                 Timer.delay(loopDelay);
