@@ -295,7 +295,7 @@ public class CatzAutonomous
                                                                 currentEncCountRt, currentVelocityLt, Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getClosedLoopError(0), currentEncCountLt, distanceRemaining, 
                                                                 -999.0, -999.0, -999.0, -999.0, -999.0,-999.0, -999.0);
                 Robot.dataCollection.logData.add(data);
-                Robot.dataCollectionTimer.delay(0.5);
+                Robot.dataCollectionTimer.delay(0.04);
             }
            
                 /*
@@ -637,8 +637,6 @@ public class CatzAutonomous
     public static void logDebugData()
     {
         CatzLog data;
-        functionTimer.reset();
-        functionTimer.start();
         data = new CatzLog(functionTimer.get(), deltaT, 
         currentAngle, currentError, deltaError, derivative, power, -999.0, -999.0, -999.0, -999.0,
         -999.0, -999.0, -999.0, -999.0, -999.0);

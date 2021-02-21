@@ -19,7 +19,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.Autonomous.CatzAutonomousPaths;
 import frc.Autonomous.CatzPathChooser;
 import frc.Autonomous.CatzAutonomous;
 import frc.DataLogger.CatzLog;
@@ -175,7 +174,7 @@ public class Robot extends TimedRobot
   {
     driveTrain.shiftToHighGear();
     auton.driveStraight(100, 10, 1000);
-    auton.PIDturn(1800, 5, 0.45);
+    auton.PIDturn(180, 3, 0.45);
     dataCollection.dataCollectionInit(dataArrayList);
     dataCollectionTimer.reset();
     dataCollectionTimer.start();
