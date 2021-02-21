@@ -19,9 +19,8 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.Autonomous.CatzAutonomous;
-import frc.Autonomous.CatzAutonomousPaths;
 import frc.Autonomous.CatzPathChooser;
+import frc.Autonomous.CatzAutonomous;
 import frc.DataLogger.CatzLog;
 import frc.DataLogger.DataCollection;
 import frc.Mechanisms.CatzClimber;
@@ -45,14 +44,14 @@ public class Robot extends TimedRobot
    */
   public static CatzDriveTrain driveTrain;
   public static CatzIntake     intake;
-  public static CatzIndexer    indexer;
   public static CatzShooter    shooter;
-  public static CatzClimber    climber;
-  public static CatzAutonomous autonomous;
-    
-  public DataCollection dataCollection;
+  public static CatzIndexer    indexer;
+  public static CatzAutonomous auton;
 
-  //navX Sensor
+
+  public static DataCollection dataCollection;
+  public static CatzLog        catzLog;
+
   public static AHRS navx;
 
   // Xbox Controllers
@@ -85,14 +84,6 @@ public class Robot extends TimedRobot
   private final int DPAD_RT = 90;
 
   // Camera Settings
-  private UsbCamera camera;
-  private UsbCamera camera2;
-
-  private VideoSink server;
-
-  private static double cameraResolutionWidth = 320;
-  private static double cameraResolutionHeight = 240;
-  private static double cameraFPS = 15;
 
   @Override
   public void robotInit() 
@@ -101,11 +92,9 @@ public class Robot extends TimedRobot
     xboxAux = new XboxController(XBOX_AUX_PORT);
 
     driveTrain = new CatzDriveTrain();
-    indexer    = new CatzIndexer();
-    shooter    = new CatzShooter();
     intake     = new CatzIntake();
-    climber    = new CatzClimber();    
-
+    auton      = new CatzAutonomous();   
+    
     navx = new AHRS(Port.kMXP, (byte)200);
     navx.reset();
     
@@ -120,7 +109,7 @@ public class Robot extends TimedRobot
     
     dataCollection.dataCollectionInit(dataArrayList);
 
-   
+    
     //create a path chooser
     SmartDashboard.putBoolean(CatzConstants.POSITION_SELECTORL, true);
     SmartDashboard.putBoolean(CatzConstants.POSITION_SELECTORM, true);
@@ -139,22 +128,6 @@ public class Robot extends TimedRobot
     SmartDashboard.putBoolean(CatzConstants.TEAM_SELECTORR, false);
   
     // Camera Configuration
-    camera = CameraServer.getInstance().startAutomaticCapture(0);
-    camera.setFPS(15);
-    camera.setResolution(320, 240);
-    camera.setPixelFormat(PixelFormat.kMJPEG);
-
-    camera2 = CameraServer.getInstance().startAutomaticCapture(1);
-    camera2.setFPS(15);
-    camera2.setResolution(320, 240);
-    camera2.setPixelFormat(PixelFormat.kMJPEG);
-
-    server = CameraServer.getInstance().getServer();
-
-    intake.intakeControl();
-    indexer.startIndexerThread();
-    shooter.setShooterVelocity();
-    climber.climbControl();
   }
 
   @Override
@@ -192,12 +165,6 @@ public class Robot extends TimedRobot
     SmartDashboard.putBoolean("Deployed", intake.getDeployedLimitSwitchState());
     SmartDashboard.putBoolean("Stowed",   intake.getStowedLimitSwitchState());
 
-    
-    indexer.debugSmartDashboard();
-    indexer.smartDashboard();
-
-    shooter.debugSmartDashboard();
-    shooter.smartdashboard();
 
     SmartDashboard.putNumber("deploy mtr ctrl", intake.getDeployMotorPower());
     }
@@ -205,31 +172,35 @@ public class Robot extends TimedRobot
   @Override
   public void autonomousInit() 
   {
-
-    driveTrain.setDriveTrainPIDConfiguration();
-
     driveTrain.shiftToHighGear();
-
+    auton.driveStraight(100, 10, 1000);
+    auton.PIDturn(180, 3, 0.45);
     dataCollection.dataCollectionInit(dataArrayList);
     dataCollectionTimer.reset();
     dataCollectionTimer.start();
-    dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_STRAIGHT_PID);
+    dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_STRAIGHT);
+    //dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_TURN);
     dataCollection.startDataCollection();
-
-    shooter.autonomousOn();
+    
+    //auton.run(0.5);
+    
+    //shooter.autonomousOn();
   }
 
   @Override
   public void autonomousPeriodic() 
   {
-    
-    CatzAutonomousPaths.monitorAutoState("STRAIGHT");
+   //// driveTrain.drvTrainLtBack.set(0.3);///use this to test
+    //driveTrain.drvTrainMtrCtrlLTBack.set(0.3);
+    //driveTrain.drvTrainLT.set(0.3);
+    //auton.driveStraight(30.0, 0.5, 10);
 
   }
 
   @Override
   public void teleopInit() 
   {
+
     driveTrain.instantiateDifferentialDrive();
 
     dataCollection.dataCollectionInit(dataArrayList);
@@ -237,10 +208,6 @@ public class Robot extends TimedRobot
     dataCollectionTimer.start();
     dataCollection.setLogDataID(dataCollection.LOG_ID_SHOOTER);
     dataCollection.startDataCollection();
-
-    indexer.clearSwitchState();
-
-    shooter.autonomousOff();
 
     //driveTrain.shiftToLowGear();
   }
@@ -260,14 +227,9 @@ public class Robot extends TimedRobot
       driveTrain.shiftToLowGear();
     }
 
-    if(xboxDrv.getStartButtonPressed())
-    {
-      server.setSource(camera);
-    }
-    else if(xboxDrv.getBackButtonPressed())
-    {
-      server.setSource(camera2);
-    }
+    
+
+    
 
     //-----------------------------------------------INTAKE---------------------------------------------------
     if(xboxDrv.getStickButtonPressed(Hand.kLeft) && intake.getDeployedLimitSwitchState() == false)
@@ -313,70 +275,39 @@ public class Robot extends TimedRobot
     //--------------------------------------------SHOOTER-------------------------------------------------
     if(xboxAux.getPOV() == DPAD_UP)
     {
-      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
+      //shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
       //shooter.setTargetVelocity(.25);
     }
     else if(xboxAux.getPOV() == DPAD_LT)
     {
-     shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
+     //shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
     }
     else if(xboxAux.getPOV() == DPAD_DN)
     {
-      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
+      //shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
     }
     else if(xboxAux.getBButton())
     {
       //indexer.setShooterIsRunning(true);
-      shooter.shoot();
+      //shooter.shoot();
     } 
     else if(xboxAux.getStartButton())
     {
-      shooter.shooterOff();
-      indexer.indexerStop();
+      //shooter.shooterOff();
+      //indexer.indexerStop();
     }
 
    //----------------------------------------------INDEXER----------------------------------------
    if(xboxAux.getBackButton())
    {
-    indexer.indexerReversedOn();
+    //indexer.indexerReversedOn();
    } 
    else
    {
-     indexer.indexerReversedOff();
+     //indexer.indexerReversedOff();
    }
 
-  //--------------------------------------------------CLIMB----------------------------------------------
-   if(xboxAux.getYButton())
-   {
-     climber.climbRunWinchLO();
-   }
-   else if(xboxAux.getXButton())
-   {
-    climber.climbRunWinchHI();
-   }
-   else
-   {
-     climber.climbStopWinch();
-   }
-
-   if(xboxAux.getAButton())
-   {
-     climber.lightsaberAutoExtend();
-   }
-/*
-   if(xboxAux.getY(Hand.kLeft )> 0.2)
-   {  
-      climber.lightsaberExtend();
-   }
-    else if(xboxAux.getY(Hand.kLeft)< -0.2)
-   {
-      climber.lightsaberRetract();
-   }
-   else
-   {
-      climber.lightsaberOff();
-   }
-   */
+  
 
   //--------------------------------------------------TESTING----------------------------------------------
    /*if(xboxAux.getAButton()) //TBD is A and B used on aux for different purpose
@@ -391,20 +322,7 @@ public class Robot extends TimedRobot
 
   public void testPeriodic() 
   {
-    if(xboxAux.getAButton() && xboxDrv.getAButton())
-    {
-      climber.climbRunWinchLO();
-    }
-
-    else if(xboxAux.getBButton() && xboxDrv.getBButton())
-    {
-      climber.climbReverse();
-    }
-
-    else
-    {
-      climber.climbStopWinch();
-    }
+    
     
   }
   

@@ -2,6 +2,7 @@ package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.StatorCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
@@ -20,11 +21,11 @@ public class CatzDriveTrain
     public WPI_TalonFX drvTrainMtrCtrlRTFrnt;
     public WPI_TalonFX drvTrainMtrCtrlRTBack;
 
-    public final int DRVTRAIN_LT_FRNT_MC_CAN_ID = 1;
-    public final int DRVTRAIN_LT_BACK_MC_CAN_ID = 2;
+    public final int DRVTRAIN_LT_FRNT_MC_CAN_ID = 1;//1;
+    public final int DRVTRAIN_LT_BACK_MC_CAN_ID = 2;//2;
 
-    public final int DRVTRAIN_RT_FRNT_MC_CAN_ID = 3;
-    public final int DRVTRAIN_RT_BACK_MC_CAN_ID = 4;
+    public final int DRVTRAIN_RT_FRNT_MC_CAN_ID = 3;//3;
+    public final int DRVTRAIN_RT_BACK_MC_CAN_ID = 4;//4;
 
     public final int DRV_TRN_LT_FRNT_MC_PDP_PORT = 0;
     public final int DRV_TRN_LT_BACK_MC_PDP_PORT = 1;
@@ -33,25 +34,34 @@ public class CatzDriveTrain
 
     private DifferentialDrive drvTrainDifferentialDrive;
 
-    private SpeedControllerGroup drvTrainLT;
-    private SpeedControllerGroup drvTrainRT;
+    public SpeedControllerGroup drvTrainLT;///TBD change back to private
+    public SpeedControllerGroup drvTrainRT;
 
     private DoubleSolenoid gearShifter;
 
     private final int DRVTRAIN_LGEAR_SOLENOID_PORT_A_PCM = 3;
     private final int DRVTRAIN_HGEAR_SOLENOID_PORT_B_PCM = 4;
 
-    /*
-    private final double GEAR_RATIO    = 11/44;  TBD - OK TO LEAVE AS COMMENT IF DATA IS CORRECT
-    private final double LOW_GEAR_RATIO  = 14/60;
-    private final double HIGH_GEAR_RATIO = 24/50;
+    
+    //private final double GEAR_RATIO    = 11/44;  TBD - OK TO LEAVE AS COMMENT IF DATA IS CORRECT
+    private final double LOW_GEAR_RATIO  = 857/50;
+    private final double HIGH_GEAR_RATIO = 25/3;
 
-    */
-    private boolean isDrvTrainInHighGear = true;    
+    
 
-    private final double integratedEncCountsPerRev      = 2048;
+    private final double TALONFX_INTEGRATED_ENC_CNTS_PER_REV      = 2048;
+    private final double DRVTRAIN_WHEEL_RADIUS                    = 2.8;
 
-    private final double driveWheelRadius               = 3;
+
+    public double encCountsToInches = 0;
+    public final double DRVTRAIN_ENC_COUNTS_TO_INCHES_HI = (1/HIGH_GEAR_RATIO) * (2 * Math.PI * DRVTRAIN_WHEEL_RADIUS) * (1/TALONFX_INTEGRATED_ENC_CNTS_PER_REV) ; //do calculations, method to determine gear and apply conversion factor
+    public final double DRVTRAIN_ENC_COUNTS_TO_INCHES_LO = (1/LOW_GEAR_RATIO) * (2 * Math.PI * DRVTRAIN_WHEEL_RADIUS) * (1/TALONFX_INTEGRATED_ENC_CNTS_PER_REV) ;
+
+    public int currentDrvTrainGear;    
+
+    public final int DRV_TRAIN_GEAR_LO = 0;
+    public final int DRV_TRAIN_GEAR_HI = 1;
+   
 
     private final int PRESSURE_SENSOR_ANALOG_PORT       = 3; 
 
@@ -63,13 +73,14 @@ public class CatzDriveTrain
     private AnalogInput pressureSensor;
 
     private SupplyCurrentLimitConfiguration drvTrainCurrentLimit;
+    private StatorCurrentLimitConfiguration drvTrainStatorCurrentLimit;
 
-    private boolean enableCurrentLimit     = true; 
-    private int currentLimitAmps           = 60;
-    private int currentLimitTriggerAmps    = 80;
-    private int currentLimitTimeoutSeconds = 5;
+    private boolean enableCurrentLimit              = true; 
+    private final int CURRENT_LIMIT_AMPS            = 60;
+    private final int CURRENT_LIMIT_TRIGGER_AMPS    = 80;
+    private final int CURRENT_LIMIT_TIMEOUT_SECONDS = 5;
 
-    private final int PID_IDX_CLOSED_LOOP = 0;
+    private final int DRVTRAIN_VELOCITY_PID_IDX = 0;
     private final int PID_TIMEOUT_MS      = 10;
 
     private final double DRIVE_STRAIGHT_PID_TUNING_CONSTANT = 0.98;
@@ -99,7 +110,8 @@ public class CatzDriveTrain
         drvTrainMtrCtrlRTBack.configFactoryDefault();
 
         //Set current limit
-        drvTrainCurrentLimit = new SupplyCurrentLimitConfiguration(enableCurrentLimit, currentLimitAmps, currentLimitTriggerAmps, currentLimitTimeoutSeconds);
+        drvTrainCurrentLimit = new SupplyCurrentLimitConfiguration(enableCurrentLimit, CURRENT_LIMIT_AMPS, CURRENT_LIMIT_TRIGGER_AMPS, CURRENT_LIMIT_TIMEOUT_SECONDS);
+        
 
         drvTrainMtrCtrlLTFrnt.configSupplyCurrentLimit(drvTrainCurrentLimit);
         drvTrainMtrCtrlLTBack.configSupplyCurrentLimit(drvTrainCurrentLimit);
@@ -111,10 +123,13 @@ public class CatzDriveTrain
         drvTrainMtrCtrlRTBack.follow(drvTrainMtrCtrlRTFrnt);
 
         //Set MC's in brake mode
-        drvTrainMtrCtrlLTFrnt.setNeutralMode(NeutralMode.Brake);
+        drvTrainMtrCtrlLTFrnt.setNeutralMode(NeutralMode.Brake); 
         drvTrainMtrCtrlLTBack.setNeutralMode(NeutralMode.Brake);
         drvTrainMtrCtrlRTFrnt.setNeutralMode(NeutralMode.Brake);
         drvTrainMtrCtrlRTBack.setNeutralMode(NeutralMode.Brake);
+
+        //drvTrainStatorCurrentLimit = new StatorCurrentLimitConfiguration(enable, currentLimit, triggerThresholdCurrent, triggerThresholdTime);//consider configuring value ConfigStatorCurrentLimit()
+        //drvTrainMtrCtrlLTFrnt.configStatorCurrentLimit(drvTrainStatorCurrentLimit);
 
         drvTrainLT = new SpeedControllerGroup(drvTrainMtrCtrlLTFrnt, drvTrainMtrCtrlLTBack);
         drvTrainRT = new SpeedControllerGroup(drvTrainMtrCtrlRTFrnt, drvTrainMtrCtrlRTBack);
@@ -124,26 +139,28 @@ public class CatzDriveTrain
         pressureSensor = new AnalogInput(PRESSURE_SENSOR_ANALOG_PORT);
 
         setDriveTrainPIDConfiguration();
+
+        shiftToHighGear();
     }
 
     public void setDriveTrainPIDConfiguration() 
     {
          //Configure feedback device for PID loop
-         drvTrainMtrCtrlLTFrnt.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS); //Constants
-         drvTrainMtrCtrlRTFrnt.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS);
+         drvTrainMtrCtrlLTFrnt.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, DRVTRAIN_VELOCITY_PID_IDX, PID_TIMEOUT_MS); //Constants
+         drvTrainMtrCtrlRTFrnt.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, DRVTRAIN_VELOCITY_PID_IDX, PID_TIMEOUT_MS);
 
          //Configure PID Gain Constants
-         drvTrainMtrCtrlLTFrnt.config_kP(0, PID_P);
-         drvTrainMtrCtrlLTFrnt.config_kI(0, PID_I);
-         drvTrainMtrCtrlLTFrnt.config_kD(0, PID_D);
-         drvTrainMtrCtrlLTFrnt.config_kF(0, PID_F);
-         drvTrainMtrCtrlLTFrnt.config_IntegralZone(0, PID_IZ);
+         drvTrainMtrCtrlLTFrnt.config_kP(DRVTRAIN_VELOCITY_PID_IDX, PID_P);
+         drvTrainMtrCtrlLTFrnt.config_kI(DRVTRAIN_VELOCITY_PID_IDX, PID_I);
+         drvTrainMtrCtrlLTFrnt.config_kD(DRVTRAIN_VELOCITY_PID_IDX, PID_D);
+         drvTrainMtrCtrlLTFrnt.config_kF(DRVTRAIN_VELOCITY_PID_IDX, PID_F);
+         drvTrainMtrCtrlLTFrnt.config_IntegralZone(DRVTRAIN_VELOCITY_PID_IDX, PID_IZ);
 
-         drvTrainMtrCtrlRTFrnt.config_kP(0, PID_P);
-         drvTrainMtrCtrlRTFrnt.config_kI(0, PID_I);
-         drvTrainMtrCtrlRTFrnt.config_kD(0, PID_D);
-         drvTrainMtrCtrlRTFrnt.config_kF(0, PID_F);
-         drvTrainMtrCtrlRTFrnt.config_IntegralZone(0, PID_IZ); 
+         drvTrainMtrCtrlRTFrnt.config_kP(DRVTRAIN_VELOCITY_PID_IDX, PID_P);
+         drvTrainMtrCtrlRTFrnt.config_kI(DRVTRAIN_VELOCITY_PID_IDX, PID_I);
+         drvTrainMtrCtrlRTFrnt.config_kD(DRVTRAIN_VELOCITY_PID_IDX, PID_D);
+         drvTrainMtrCtrlRTFrnt.config_kF(DRVTRAIN_VELOCITY_PID_IDX, PID_F);
+         drvTrainMtrCtrlRTFrnt.config_IntegralZone(DRVTRAIN_VELOCITY_PID_IDX, PID_IZ); 
     }
 
     public void arcadeDrive(double power, double rotation)
@@ -154,13 +171,15 @@ public class CatzDriveTrain
     public void shiftToHighGear()
     {
         gearShifter.set(Value.kForward);
-        isDrvTrainInHighGear = true;
+        currentDrvTrainGear = DRV_TRAIN_GEAR_HI; //curr
+        encCountsToInches = DRVTRAIN_ENC_COUNTS_TO_INCHES_HI;
     }
 
     public void shiftToLowGear()
     {
         gearShifter.set(Value.kReverse);
-        isDrvTrainInHighGear = false;
+        currentDrvTrainGear = DRV_TRAIN_GEAR_LO;
+        encCountsToInches = DRVTRAIN_ENC_COUNTS_TO_INCHES_LO;
     }
 
     public double getMotorTemperature(int id)
@@ -200,19 +219,19 @@ public class CatzDriveTrain
         return position;
     }
 
-    public double getIntegratedEncPosition(String side) 
+    public int getDrvTrainEncoderCnt(String side) 
     {
-        double position = 0.0;
+        int counts = 0;
         side.toUpperCase();
         if(side.equals("LT"))
         {
-            position = drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
+            counts = drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
         }
-        else if(side.equals("RT"))
+        else // if(side.equals("RT"))
         {
-            position = drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);
+            counts = drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);
         }
-        return position;
+        return counts;
     }
 
     public double getIntegratedEncVelocity(String side)
@@ -221,7 +240,7 @@ public class CatzDriveTrain
         side.toUpperCase();
         if(side.equals("LT"))
         {
-            velocity = drvTrainMtrCtrlLTFrnt.getSensorCollection().getIntegratedSensorVelocity();
+            velocity = drvTrainMtrCtrlLTFrnt.getSensorCollection().getIntegratedSensorVelocity(); //returning counts per 100ms
         }
         else if(side.equals("RT"))
         {
@@ -238,13 +257,25 @@ public class CatzDriveTrain
 
     public void setTargetVelocity(double targetVelocity)
     {
+
         drvTrainMtrCtrlLTFrnt.set(TalonFXControlMode.Velocity, targetVelocity);
         drvTrainMtrCtrlRTFrnt.set(TalonFXControlMode.Velocity, -DRIVE_STRAIGHT_PID_TUNING_CONSTANT*targetVelocity);
-        drvTrainMtrCtrlLTBack.follow(drvTrainMtrCtrlLTFrnt);
-        drvTrainMtrCtrlRTBack.follow(drvTrainMtrCtrlRTFrnt);
+        
     }
 
-    
+    public double getVelocityError(String side, double targetVelocity)
+    {
+        double velocityError = 0.0;
+        if(side.equals("LT"))
+        {
+            velocityError = targetVelocity - getIntegratedEncVelocity("LT");
+        }
+        else if(side.equals("RT"))
+        {
+            velocityError = targetVelocity - getIntegratedEncVelocity("RT");
+        }
+        return velocityError;
+    }
 
     public void setIntegratedEncPosition(int position)
     {
@@ -253,7 +284,7 @@ public class CatzDriveTrain
 
     public double convertLinearVelocityToAngularVelcoity(double linearVelocity)
     {
-        return linearVelocity*12.0/driveWheelRadius/(2*Math.PI)*integratedEncCountsPerRev/1000.0*100.0;
+        return linearVelocity*12.0/DRVTRAIN_WHEEL_RADIUS/(2*Math.PI)*TALONFX_INTEGRATED_ENC_CNTS_PER_REV/1000.0*100.0;
     }
 
     public double getPSI(double voltage)
@@ -266,11 +297,9 @@ public class CatzDriveTrain
     {
         drvTrainDifferentialDrive = new DifferentialDrive(drvTrainLT, drvTrainRT);
     }
-
-	public void setTargetPower(double targetPower) {
-        drvTrainMtrCtrlLTFrnt.set(TalonFXControlMode.Current, targetPower);
-        drvTrainMtrCtrlRTFrnt.set(TalonFXControlMode.Current, -targetPower);
-        drvTrainMtrCtrlRTBack.follow(drvTrainMtrCtrlRTFrnt);
-        drvTrainMtrCtrlLTBack.follow(drvTrainMtrCtrlLTFrnt);
+    
+    public void setTargetPower(double targetPower) {
+        drvTrainMtrCtrlLTFrnt.set(TalonFXControlMode.PercentOutput, targetPower);
+        drvTrainMtrCtrlRTFrnt.set(TalonFXControlMode.PercentOutput, targetPower);  
 	}
 }

@@ -24,7 +24,7 @@ public class CatzClimber
     public  final int CLIMB_MC_A_PDP_PORT    = 2;
     public  final int CLIMB_MC_B_PDP_PORT    = 3;
 
-    private final int LIGHTSABER_MC_CAN_ID   = 50;
+    private final int LIGHTSABER_MC_CAN_ID   = 41; ///used to be 50
 
     public  final int LIGHTSABER_MC_PDP_PORT = 9; 
 

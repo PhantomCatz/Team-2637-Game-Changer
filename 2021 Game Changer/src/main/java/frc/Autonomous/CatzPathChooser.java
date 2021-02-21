@@ -21,19 +21,19 @@ public class CatzPathChooser
         if(checkBoxL == true)
         {
 
-            CatzAutonomousPaths.monitorAutoState("LEFT");
+            //CatzAutonomousPaths.monitorAutoState("LEFT");
 
         }
         else if(checkBoxM == true)
         {
 
-            CatzAutonomousPaths.monitorAutoState("STRAIGHT");
+           // CatzAutonomousPaths.monitorAutoState("STRAIGHT");
 
         }
         else if(checkBoxR == true)
         {
 
-            CatzAutonomousPaths.monitorAutoState("RIGHT");
+            //CatzAutonomousPaths.monitorAutoState("RIGHT");
 
         }
         else

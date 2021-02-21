@@ -3,8 +3,9 @@ package frc.DataLogger;
 import java.util.ArrayList;
 
 import edu.wpi.first.wpilibj.Timer;
-import frc.Autonomous.CatzAutonomous;
+
 import frc.robot.Robot;
+import frc.Autonomous.CatzAutonomous;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -31,7 +32,7 @@ public class DataCollection
     public static boolean logDataValues = false;   
     public static int     logDataID;
 
-    public static ArrayList<CatzLog> logData;
+    public ArrayList<CatzLog> logData;
 
     StringBuilder sb = new StringBuilder();
 
@@ -42,15 +43,21 @@ public class DataCollection
     public final int LOG_ID_DRV_DISTANCE_PID   = 3;
     public final int LOG_ID_DRV_TURN_PID       = 4;
     public final int LOG_ID_SHOOTER            = 5;
+    public final int LOG_ID_DRV_STRAIGHT       = 6;
+    public final int LOG_ID_DRV_TURN           = 7;
+
+    public boolean isFirst;
+    public boolean validLogID = true;
 
     private final String LOG_HDR_DRV_TRAIN = "time,pdp-v,dt-lf-I,dt-lb-I,dt-rf-I,dt-rb-I,dt-lf-T,dt-lb-T,dt-rf-T,dt-rb-T,dt-l-ie,dt-r-ie,dt-l-ee,dt-r-ee,dt-l-v,dt-r-v";
-    private final String LOG_HDR_DRV_STRAIGHT_PID   = "time,dt-l-iev,dt-l-pwr,dt-l-mcI,dt-l-cle,dt-l-errD,dt-l-iAcc," +
-                                                           "dt-r-iev,dt-r-pwr,dt-r-mcI,dt-r-cle,dt-r-errD,dt-r-iAcc,dt-l-v,dt-r-v";
+    private final String LOG_HDR_DRV_STRAIGHT_PID  = "pid-p,pid-i,pid-d,pid-f,pid-iz,cnt-to-in,in-hi-gear,trgt-dst" +
+                                                           "tarVel, lt-acc-Vel, rt-acc-vel, lt-vel-er, rt-vel-er,lt-enc-ct,rt-enc-ct,dist";
     private final String LOG_HDR_DRV_DISTANCE_PID = "Undefined";
     private final String LOG_HDR_DRV_TURN_PID = "Undefined";
     private final String LOG_HDR_SHOOTER = "time, pdp-v, shtr-A-v, shtr-B-v, shtr-A-I, shtr-B-I, shtr-A-T, shtr-B-T, shtr-fwsv, shtr-A-pwr, shtr-B-pwr";
-
-
+    private final String LOG_HDR_DRV_STRAIGHT = //"pid-p,pid-i,pid-d,pid-f,pid-iz,cnt-to-in,in-hi-gear,trgt-dst" +
+                                                "time, tarVel, rt-curr-Vel, rt-vel-er, rt-enc-cnt,lt-curr-Vel,lt-vel-er,lt-enc-cnt dist";
+    private final String LOG_HDR_DRV_TURN = "cur-time, del-time, cur-ang, cur-err, curr-pow";
     public String logStr;
 
     public void setLogDataID(final int dataID)
@@ -100,6 +107,52 @@ public class DataCollection
         logDataValues = false; 
     }
 
+    public void printInitialData()
+    {
+        CatzLog data;
+        double data1  =          Robot.driveTrain.PID_P;
+        double data2  =          Robot.driveTrain.PID_I;
+        double data3  =          Robot.driveTrain.PID_D;
+        double data4  =          Robot.driveTrain.PID_F;
+        double data5  =          Robot.driveTrain.PID_IZ;
+        double data6  =          Robot.driveTrain.encCountsToInches;
+        double data7  =          Robot.driveTrain.currentDrvTrainGear;
+        double data8  =          Robot.auton.distanceGoal;
+        double data9 = -999.0;
+        double data10 = -999.0;
+        double data11 = -999.0;
+        double data12 = -999.0;
+        double data13 = -999.0;
+        double data14 = -999.0;
+        double data15 = -999.0;
+        double data16 = -999.0;
+        data = new CatzLog( data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15,data16);
+        logData.add(data);
+    }
+
+    public void printInitialDataTurnPID()
+    {
+        CatzLog data;
+        double data1 = Robot.auton.turnPid.getPgain();
+        double data2 = Robot.auton.turnPid.getIgain();
+        double data3 = Robot.auton.turnPid.getDgain();
+        double data4 = Robot.auton.turnPid.getFf1gain();
+        double data5 = -999.0;
+        double data6 = -999.0;
+        double data7 = -999.0;
+        double data8 = -999.0;
+        double data9 = -999.0;
+        double data10 = -999.0;
+        double data11 = -999.0;
+        double data12 = -999.0;
+        double data13 = -999.0;
+        double data14 = -999.0;
+        double data15 = -999.0;
+        double data16 = -999.0;
+        data = new CatzLog( data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15,data16);
+        logData.add(data);
+    }
+
     public void collectData(final int dataID)
     {
         CatzLog data;
@@ -118,8 +171,9 @@ public class DataCollection
         double data13 = -999.0;
         double data14 = -999.0;
         double data15 = -999.0;
+        double data16 = -999.0;
 
-        boolean validLogID = true;
+        
 
         switch (dataID) 
         {
@@ -136,11 +190,11 @@ public class DataCollection
                 data8 = Robot.driveTrain.getMotorTemperature(Robot.driveTrain.DRVTRAIN_RT_FRNT_MC_CAN_ID); 
                 data9 = Robot.driveTrain.getMotorTemperature(Robot.driveTrain.DRVTRAIN_RT_BACK_MC_CAN_ID); 
 
-                data10 = Robot.driveTrain.getIntegratedEncPosition("LT");
-                data11 = Robot.driveTrain.getIntegratedEncPosition("RT");
+                //data10 = Robot.driveTrain.getIntegratedEncPosition("LT");
+                //data11 = Robot.driveTrain.getIntegratedEncPosition("RT");
 
-                data12 = Robot.driveTrain.getSrxMagPosition("LT");
-                data13 = Robot.driveTrain.getSrxMagPosition("RT");
+                //data12 = Robot.driveTrain.getSrxMagPosition("LT");
+                //data13 = Robot.driveTrain.getSrxMagPosition("RT");
 
                 data14 = Robot.driveTrain.getIntegratedEncVelocity("LT");
                 data15 = Robot.driveTrain.getIntegratedEncVelocity("RT");
@@ -148,26 +202,29 @@ public class DataCollection
                 break;
 
             case LOG_ID_DRV_STRAIGHT_PID:
+                
+                data1  =          Robot.driveTrain.PID_P;
+                data2  =          Robot.driveTrain.PID_I;
+                data3  =          Robot.driveTrain.PID_D;
+                data4  =          Robot.driveTrain.PID_F;
+                data5  =          Robot.driveTrain.PID_IZ;
+                data6  =          Robot.driveTrain.encCountsToInches;
+                data7  =          Robot.driveTrain.currentDrvTrainGear;
+                data8  =          Robot.auton.distanceGoal;
 
-                data1 =          Robot.driveTrain.getIntegratedEncVelocity("LT");
-                data2 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getMotorOutputPercent();
-                data3 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getStatorCurrent();
-                data4 = (double) Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getClosedLoopError(0);
-                data5 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getErrorDerivative();
-                data6 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getIntegralAccumulator(0);
+                data9  =          Robot.auton.targetVelocity;
+                data10 =          Robot.driveTrain.getIntegratedEncVelocity("LT"); //change parameters to constant
+                data11 =          Robot.driveTrain.getIntegratedEncVelocity("RT");
+                data12 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getClosedLoopError(0);
+                data13 =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getClosedLoopError(0);
+                data14 =          Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
+                data15 =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);
+                //data16 =          Robot.auton.distanceMoved;
 
-                data7  =          Robot.driveTrain.getIntegratedEncVelocity("RT");
-                data8  =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getMotorOutputPercent();
-                data9  =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getStatorCurrent();
-                data10 = (double) Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getClosedLoopError(0);
-                data11 =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getErrorDerivative();
-                data12 =          Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getIntegralAccumulator(0);
-                data13 = Robot.driveTrain.getIntegratedEncVelocity("LT");
-                data14 = Robot.driveTrain.getIntegratedEncVelocity("RT");
-
+                
                 break; 
 
-            case 3 :
+            case 3:
 
                 
                 data9  = Robot.driveTrain.getSrxMagPosition("LT");
@@ -176,39 +233,31 @@ public class DataCollection
                 break;
                 
             case LOG_ID_SHOOTER:
-                data1 = Robot.pdp.getVoltage();
-
-                /*data2 = Robot.shooter.shtrMtrCtrlA.getMotorOutputVoltage();
-                data3 = Robot.shooter.shtrMtrCtrlB.getMotorOutputVoltage();
-                data4 = Robot.shooter.shtrMtrCtrlA.getStatorCurrent();
-                data5 = Robot.shooter.shtrMtrCtrlB.getStatorCurrent();
-                data6 = Robot.shooter.shtrMtrCtrlA.getTemperature();
-                data7 = Robot.shooter.shtrMtrCtrlB.getTemperature();
-                data8 = Robot.shooter.getFlywheelShaftVelocity();
-                
-                data9 = Robot.shooter.shtrMtrCtrlA.getMotorOutputPercent();
-                data10 = Robot.shooter.shtrMtrCtrlB.getMotorOutputPercent();*/
+            case LOG_ID_DRV_STRAIGHT:
                 break;
+            case LOG_ID_DRV_TURN:
+                break;
+           
 
-            case LOG_ID_DRV_TURN_PID:
-                data1 = Robot.autonomous.getCurrTime();
-                data2 = Robot.autonomous.getDeltaT();
-                data3 = Robot.autonomous.getCurrAngle();
-                data4 = Robot.autonomous.getCurrError();
-                data5 = Robot.autonomous.getDeltaError();
-                data6 = Robot.autonomous.getCurrPower();
+
             default :
                 validLogID = false;
 
         }
-
-        if(validLogID == true) 
+        
+        if (isFirst == true)
+        {
+            printInitialData();
+            isFirst = false;
+        }
+        else if(validLogID == true) 
         {
             data = new CatzLog(Robot.dataCollectionTimer.get(), data1, data2, data3, data4, data5, data6, data7, data8, data9, data10, data11, data12, data13, data14, data15);
             logData.add(data);
         }
     }
-
+    
+    
     public void writeHeader(PrintWriter pw) 
     {
         switch (logDataID)
@@ -228,6 +277,11 @@ public class DataCollection
             case LOG_ID_SHOOTER:
                 pw.printf(LOG_HDR_SHOOTER);
                 break;    
+            case LOG_ID_DRV_STRAIGHT:
+                pw.printf(LOG_HDR_DRV_STRAIGHT);
+                break;
+            case LOG_ID_DRV_TURN:
+                pw.printf(LOG_HDR_DRV_TURN);
             default :
                 pw.printf("Invalid Log Data ID");            
 
