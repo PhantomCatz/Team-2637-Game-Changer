@@ -1,4 +1,4 @@
-package frc.Mechanism;
+package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
@@ -8,12 +8,12 @@ import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.DoubleSolenoid.Value;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 
-public class CatzDrivetrain
+public class CatzDriveTrain
 {
-    public WPI_TalonFX drvTrainMCLTFrnt;
-    public WPI_TalonFX drvTrainMCLTBack;
-    public WPI_TalonFX drvTrainMCRTFrnt;
-    public WPI_TalonFX drvTrainMCRTBack;
+    public WPI_TalonFX drvTrainMtrCtrlLTFrnt;
+    public WPI_TalonFX drvTrainMtrCtrlLTBack;
+    public WPI_TalonFX drvTrainMtrCtrlRTFrnt;
+    public WPI_TalonFX drvTrainMtrCtrlRTBack;
 
     public final int DRVTRAIN_MC_LT_FRNT_CAN_ID = 1;
     public final int DRVTRAIN_MC_LT_BACK_CAN_ID = 2;
@@ -40,23 +40,24 @@ public class CatzDrivetrain
     private int currentLimitTimeoutSeconds = 5;
 
         
-    public CatzDrivetrain()
+    public CatzDriveTrain()
     {
-        drvTrainMCLTFrnt = new WPI_TalonFX(DRVTRAIN_MC_LT_FRNT_CAN_ID);
-        drvTrainMCLTBack = new WPI_TalonFX(DRVTRAIN_MC_LT_BACK_CAN_ID);
-        drvTrainMCRTFrnt = new WPI_TalonFX(DRVTRAIN_MC_RT_FRNT_CAN_ID);
-        drvTrainMCRTBack = new WPI_TalonFX(DRVTRAIN_MC_RT_BACK_CAN_ID);
+        drvTrainMtrCtrlLTFrnt = new WPI_TalonFX(DRVTRAIN_MC_LT_FRNT_CAN_ID);
+        drvTrainMtrCtrlLTBack = new WPI_TalonFX(DRVTRAIN_MC_LT_BACK_CAN_ID);
+        
+        drvTrainMtrCtrlRTFrnt = new WPI_TalonFX(DRVTRAIN_MC_RT_FRNT_CAN_ID);
+        drvTrainMtrCtrlRTBack = new WPI_TalonFX(DRVTRAIN_MC_RT_BACK_CAN_ID);
 
         //Set current limit
         drvTrainCurrentLimit = new SupplyCurrentLimitConfiguration(enableCurrentLimit, currentLimitAmps, currentLimitTriggerAmps, currentLimitTimeoutSeconds);
 
-        drvTrainMCLTFrnt.configSupplyCurrentLimit(drvTrainCurrentLimit);
-        drvTrainMCLTBack.configSupplyCurrentLimit(drvTrainCurrentLimit);
-        drvTrainMCRTFrnt.configSupplyCurrentLimit(drvTrainCurrentLimit);
-        drvTrainMCRTBack.configSupplyCurrentLimit(drvTrainCurrentLimit);
+        drvTrainMtrCtrlLTFrnt.configSupplyCurrentLimit(drvTrainCurrentLimit);
+        drvTrainMtrCtrlLTBack.configSupplyCurrentLimit(drvTrainCurrentLimit);
+        drvTrainMtrCtrlRTFrnt.configSupplyCurrentLimit(drvTrainCurrentLimit);
+        drvTrainMtrCtrlRTBack.configSupplyCurrentLimit(drvTrainCurrentLimit);
         
-        drvTrainLT = new SpeedControllerGroup(drvTrainMCLTFrnt, drvTrainMCLTBack);
-        drvTrainLT = new SpeedControllerGroup(drvTrainMCRTFrnt, drvTrainMCRTBack);
+        drvTrainLT = new SpeedControllerGroup(drvTrainMtrCtrlLTFrnt, drvTrainMtrCtrlLTBack);
+        drvTrainLT = new SpeedControllerGroup(drvTrainMtrCtrlRTFrnt, drvTrainMtrCtrlRTBack);
    
         drvTrainDifferentialDrive = new DifferentialDrive(drvTrainLT, drvTrainRT);
 
