@@ -1,6 +1,7 @@
 package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.Timer;
@@ -15,7 +16,7 @@ public class CatzShooter
     private final int SHTR_MC_ID_A = 10; 
     private final int SHTR_MC_ID_B = 11; 
 
-    final double COUNTS_PER_REVOLUTION      = 4096.0;
+    final double COUNTS_PER_REVOLUTION      = 2048.0;
     final double SEC_TO_MIN                 = 60.0;
     final double ENCODER_SAMPLE_RATE_MSEC   = 100.0;
     final double ENCODER_SAMPLE_PERIOD_MSEC = (1.0 / ENCODER_SAMPLE_RATE_MSEC);
@@ -81,6 +82,24 @@ public class CatzShooter
         //initialize motor controllers
         shtrMCA = new WPI_TalonFX(SHTR_MC_ID_A);
         shtrMCB = new WPI_TalonFX(SHTR_MC_ID_B);
+
+        shtrMCA.configFactoryDefault();
+        shtrMCB.configFactoryDefault();
+
+        shtrMCB.follow(shtrMCA);
+
+        shtrMCA.setNeutralMode(NeutralMode.Coast);
+        shtrMCB.setNeutralMode(NeutralMode.Coast);
+
+        //limits how long the shooter runs so it doesn't go too long (limiter)
+        indexerShootStateCountLimit = (int)Math.round( (INDEXER_SHOOT_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5 ); 
+        //equation which limits how long the ramp up goes (don't want it to go too much/fast)
+        rampStateCountLimit         = (int)Math.round( (SHOOTER_RAMP_TIMEOUT_SEC / SHOOTER_THREAD_PERIOD) + 0.5);
+        //equation which determines the time between each sample (flywheel velocity)
+        samplingVelocityCountLimit  = (int)Math.round( (SHOOTER_AVG_VEL_SAMPLE_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5);
+        
+        setShooterVelocity();
+        shooterOff();
     }
 
     public void setShooterVelocity() //will make shooter run and etc
@@ -275,6 +294,11 @@ public class CatzShooter
     public double getFlywheelShaftVelocity() //RPM
     {
         return (Math.abs((double) shtrMCA.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM)); 
+    }
+
+    public void setTargetRPM(double velocity) // Sets the RPM (determined by the button pressed on controller)
+    {
+        targetRPM = velocity;
     }
 
     public void shoot() // when a button is pressed on controller, it will cause the indexer to move and launch balls. sets state to ready

@@ -9,6 +9,7 @@ package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
+import frc.Mechanisms.CatzShooter;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -19,13 +20,22 @@ import edu.wpi.first.wpilibj.XboxController;
  */
 public class Robot extends TimedRobot {
 
+  public static CatzShooter shooter;
+  
   public static XboxController xboxAux;
+
+  private final int DPAD_UP = 0;
+  private final int DPAD_DN = 180;
+  private final int DPAD_LT = 270;
+  private final int DPAD_RT = 90;
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
    */
   @Override
   public void robotInit() {
+    shooter = new CatzShooter();
+
     xboxAux = new XboxController(1);
   }
 
@@ -76,6 +86,30 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+
+    //-----------------------shooter-----------------------
+    if(xboxAux.getPOV() == DPAD_UP)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
+      //shooter.setTargetVelocity(.25);
+    }
+    else if(xboxAux.getPOV() == DPAD_LT)
+    {
+     shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
+    }
+    else if(xboxAux.getPOV() == DPAD_DN)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
+    }
+    else if(xboxAux.getBButton())
+    {
+      //indexer.setShooterIsRunning(true);
+      shooter.shoot();
+    } 
+    else if(xboxAux.getStartButton())
+    {
+      shooter.shooterOff();
+    }
   }
 
   /**
