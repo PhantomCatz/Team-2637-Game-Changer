@@ -15,4 +15,14 @@ public class CatzElevator
         elvtrMCA = new WPI_TalonSRX(ELVTR_MC_ID_A);
         elvtrMCB = new WPI_TalonSRX(ELVTR_MC_ID_B);
     }
+
+    public void lowerElevator(double power)
+    {
+        elvtrMCA.set(power);
+    }
+
+    public void upperElevator(double power)
+    {
+        elvtrMCB.set(power);
+    }
 }
