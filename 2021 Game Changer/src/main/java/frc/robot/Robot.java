@@ -62,6 +62,8 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
 
+  }
+
 
   /**
    * This function is called once when teleop is enabled.
