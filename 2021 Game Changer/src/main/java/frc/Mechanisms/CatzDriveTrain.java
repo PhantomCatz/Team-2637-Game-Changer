@@ -1,4 +1,4 @@
-package frc.Mechanism;
+package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.SupplyCurrentLimitConfiguration;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;

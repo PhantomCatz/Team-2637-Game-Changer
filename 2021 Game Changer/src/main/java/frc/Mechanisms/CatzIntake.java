@@ -1,4 +1,4 @@
-package frc.Mechanism;
+package frc.Mechanisms;
 
 import com.revrobotics.CANSparkMax;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
