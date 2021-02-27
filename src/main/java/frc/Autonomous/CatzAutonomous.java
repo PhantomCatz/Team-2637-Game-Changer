@@ -266,6 +266,8 @@ public class CatzAutonomous
 		currentError  = targetAngle   - currentAngle;
 
 		targetAngleAbs = Math.abs(targetAngle);
+		
+		logPidValues();
 
 		pdTimer.reset();
 		pdTimer.start();
@@ -381,6 +383,7 @@ public class CatzAutonomous
 					 * right and negative if turning left
 					 *******************************************************************/
 					Robot.driveTrain.setTargetPower(Math.min(power, maxPower));
+					logDebugData();
 					printDebugData();
 					Timer.delay(loopDelay);
 				}
