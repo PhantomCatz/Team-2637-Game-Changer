@@ -8,6 +8,9 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
+import frc.Mechanisms.CatzElevator;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -18,6 +21,15 @@ import edu.wpi.first.wpilibj.TimedRobot;
  */
 public class Robot extends TimedRobot {
 
+  private final int XBOX_DRV_PORT = 0;
+
+  XboxController xboxDrv = new XboxController(XBOX_DRV_PORT);
+
+  public static CatzElevator elevator;
+
+  public final double ELE_POWER = 1.0;
+  public final double ELE_FACTOR = 1.0;
+  
 
   /**
    * This function is run when the robot is first started up and should be
@@ -26,6 +38,9 @@ public class Robot extends TimedRobot {
   @Override
   public void robotInit() {
 
+  elevator = new CatzElevator();
+  
+    
   }
 
   /**
@@ -77,6 +92,21 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+    if(xboxDrv.getY(Hand.kLeft) > 0)
+    {
+      elevator.upperElevator(ELE_POWER * ELE_FACTOR);
+      elevator.lowerElevator(ELE_POWER);
+    }
+    else if (xboxDrv.getY(Hand.kLeft) < 0)
+    {
+      elevator.upperElevator(-ELE_POWER * ELE_FACTOR);
+      elevator.lowerElevator(-ELE_POWER);
+    }
+    else
+    {
+      elevator.upperElevator(0);
+      elevator.lowerElevator(0);
+    }
   }
 
   /**
