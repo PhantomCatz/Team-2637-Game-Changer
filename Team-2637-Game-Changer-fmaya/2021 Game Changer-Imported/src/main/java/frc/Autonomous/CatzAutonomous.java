@@ -351,8 +351,8 @@ public class CatzAutonomous
 		targetAngleAbs = Math.abs(targetAngle);
 
 
-		printDebugInit();
-		printDebugHeader();
+        logPIDValues();
+		
 
 		pdTimer.reset();
 		pdTimer.start();
@@ -645,6 +645,14 @@ public class CatzAutonomous
         data = new CatzLog(functionTimer.get(), deltaT, 
         currentAngle, currentError, deltaError, derivative, power, -999.0, -999.0, -999.0, -999.0,
         -999.0, -999.0, -999.0, -999.0, -999.0);
+        Robot.dataCollection.logData.add(data);
+    }
+
+    public void logPIDValues()
+    {
+        CatzLog data; 
+        data = new CatzLog(pidTurnkP, pidTurnkD, loopDelay, PID_TURN_FILTER_CONSTANT,-999.0, -999.0, -999.0, -999.0,
+        -999.0, -999.0, -999.0, -999.0, -999.0,-999.0, -999.0,-999.0);
         Robot.dataCollection.logData.add(data);
     }
 
