@@ -7,8 +7,12 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.Mechanisms.CatzShooter;
 
 /**
@@ -32,11 +36,11 @@ public class Robot extends TimedRobot {
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
    */
+
   @Override
   public void robotInit() {
+    xboxAux = new XboxController(0);
     shooter = new CatzShooter();
-
-    xboxAux = new XboxController(1);
   }
 
   /**
@@ -49,6 +53,10 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void robotPeriodic() {
+
+    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
+    SmartDashboard.putNumber("shooterState", shooter.shooterState);
+
   }
 
   /**
@@ -86,7 +94,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-
+    
     //-----------------------shooter-----------------------
     if(xboxAux.getPOV() == DPAD_UP)
     {

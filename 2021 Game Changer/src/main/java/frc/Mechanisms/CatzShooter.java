@@ -86,7 +86,7 @@ public class CatzShooter
         shtrMCA.configFactoryDefault();
         shtrMCB.configFactoryDefault();
 
-        shtrMCB.follow(shtrMCA);
+        //shtrMCB.follow(shtrMCA);
 
         shtrMCA.setNeutralMode(NeutralMode.Coast);
         shtrMCB.setNeutralMode(NeutralMode.Coast);
@@ -145,6 +145,7 @@ public class CatzShooter
 
                             getBangBangPower();
                             shtrMCA.set(shooterPower);
+                            shtrMCB.set(-shooterPower);
 
                             for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
                             {
@@ -163,6 +164,7 @@ public class CatzShooter
                             shooterState = SHOOTER_STATE_SET_SPEED;
                             shooterPower = maxPower;
                             shtrMCA.set(shooterPower);
+                            shtrMCB.set(-shooterPower);
                             System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
 
                         }
@@ -224,7 +226,7 @@ public class CatzShooter
                         {
                             if(rumbleSet == false)
                             {
-                                Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 1);
+                                Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0.5);
                                 rumbleSet = true;
                             } 
                         }
@@ -232,7 +234,8 @@ public class CatzShooter
 
                     case SHOOTER_STATE_START_SHOOTING: 
                         shooterPower = SHOOTER_SHOOT_POWER;
-                        shtrMCA.set(shooterPower);    
+                        shtrMCA.set(shooterPower);   
+                        shtrMCB.set(-shooterPower); 
                         System.out.println("TS1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
 
                         if(flywheelShaftVelocity > targetRPM + SHOOTER_RPM_START_OFFSET)
@@ -267,8 +270,8 @@ public class CatzShooter
     }
 
     public void getBangBangPower() //determines max and min power based on the velocity chosen
-    {
-       double power =  (targetRPM / 10000.0) + 0.04; //+0.05    
+    {//10000) + 0.04
+       double power =  (targetRPM / 6380.0); //+0.05    
        minPower = -(power - 0.05);
        maxPower = -(power + 0.05);
     }
@@ -284,6 +287,7 @@ public class CatzShooter
             shooterPower = maxPower;
         }
         shtrMCA.set(shooterPower);
+        shtrMCB.set(-shooterPower);
     }
 
     public double getFlywheelShaftPosition() //encoder counts
@@ -318,6 +322,7 @@ public class CatzShooter
         shooterState   = SHOOTER_STATE_OFF;
         shooterPower   = SHOOTER_OFF_POWER;
         shtrMCA.set(shooterPower);
+        shtrMCB.set(-shooterPower);
         //Robot.indexer.setShooterIsRunning(false);
         Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0);
     
