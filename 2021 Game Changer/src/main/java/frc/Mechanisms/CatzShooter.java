@@ -33,12 +33,12 @@ public class CatzShooter
     public static final int SHOOTER_STATE_WAIT_FOR_SHOOT_DONE = 5;
     
     public final double SHOOTER_RPM_START_OFFSET =  250.0;
-    public final double SHOOTER_TARGET_RPM_LO    = (4700.0 - SHOOTER_RPM_START_OFFSET); //4400
-    public final double SHOOTER_TARGET_RPM_MD    = (5000.0 - SHOOTER_RPM_START_OFFSET);
-    public final double SHOOTER_TARGET_RPM_HI    = (6000.0 - SHOOTER_RPM_START_OFFSET);
+    public final double SHOOTER_TARGET_RPM_LO    = 3500;//(4700.0 - SHOOTER_RPM_START_OFFSET); //4400
+    public final double SHOOTER_TARGET_RPM_MD    = 4000;//(5000.0 - SHOOTER_RPM_START_OFFSET);
+    public final double SHOOTER_TARGET_RPM_HI    = 4500;//(6000.0 - SHOOTER_RPM_START_OFFSET);
 
-    final double SHOOTER_BANG_BANG_MAX_RPM_OFFSET = 5.0; 
-    final double SHOOTER_BANG_BANG_MIN_RPM_OFFSET = 5.0;
+    final double SHOOTER_BANG_BANG_MAX_RPM_OFFSET = 10.0; 
+    final double SHOOTER_BANG_BANG_MIN_RPM_OFFSET = 10.0;
 
     final double SHOOTER_RAMP_RPM_OFFSET = 200.0;
 
@@ -270,10 +270,10 @@ public class CatzShooter
     }
 
     public void getBangBangPower() //determines max and min power based on the velocity chosen
-    {//10000) + 0.04
-       double power =  (targetRPM / 6380.0); //+0.05    
-       minPower = -(power - 0.05);
-       maxPower = -(power + 0.05);
+    {                              //10000) + 0.04
+       double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
+       minPower = -(power - 0.01);
+       maxPower = -(power + 0.01);
     }
 
     public void bangBang(double minRPM, double maxRPM, double flywheelShaftVelocity) // bangbang method

@@ -39,7 +39,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
-    xboxAux = new XboxController(0);
+    xboxAux = new XboxController(1);
     shooter = new CatzShooter();
   }
 
@@ -55,7 +55,7 @@ public class Robot extends TimedRobot {
   public void robotPeriodic() {
 
     SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
-    SmartDashboard.putNumber("shooterState", shooter.shooterState);
+    SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
 
   }
 
