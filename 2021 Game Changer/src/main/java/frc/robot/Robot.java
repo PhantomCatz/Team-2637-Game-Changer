@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.Mechanisms.CatzShooter;
+import frc.Mechanisms.CatzElevator;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -24,9 +25,21 @@ import frc.Mechanisms.CatzShooter;
  */
 public class Robot extends TimedRobot {
 
+
   public static CatzShooter shooter;
   
   public static XboxController xboxAux;
+
+  private final int XBOX_DRV_PORT = 0;
+
+  XboxController xboxDrv = new XboxController(XBOX_DRV_PORT);
+
+  public static CatzElevator elevator;
+
+  public final double ELE_POWER = 0.5;
+  public final double ELE_FACTOR = 1.3;
+  
+
 
   private final int DPAD_UP = 0;
   private final int DPAD_DN = 180;
@@ -39,8 +52,15 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotInit() {
+
     xboxAux = new XboxController(1);
     shooter = new CatzShooter();
+
+
+  elevator = new CatzElevator();
+  
+    
+
   }
 
   /**
@@ -79,8 +99,12 @@ public class Robot extends TimedRobot {
    * This function is called periodically during autonomous.
    */
   @Override
-  public void autonomousPeriodic() {
+  public void autonomousPeriodic() 
+  {
+
+
   }
+
 
   /**
    * This function is called once when teleop is enabled.
@@ -94,6 +118,7 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
+
     
     //-----------------------shooter-----------------------
     if(xboxAux.getPOV() == DPAD_UP)
@@ -117,6 +142,17 @@ public class Robot extends TimedRobot {
     else if(xboxAux.getStartButton())
     {
       shooter.shooterOff();
+
+    if(xboxDrv.getAButton() == true)
+    {
+      elevator.runElevatorA(ELE_POWER);
+      elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
+    }
+    else
+    {
+      elevator.runElevatorA(0);
+      elevator.runElevatorB(0);
+
     }
   }
 
