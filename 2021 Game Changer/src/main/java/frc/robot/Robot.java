@@ -27,8 +27,8 @@ public class Robot extends TimedRobot {
 
   public static CatzElevator elevator;
 
-  public final double ELE_POWER = 1.0;
-  public final double ELE_FACTOR = 1.0;
+  public final double ELE_POWER = 0.5;
+  public final double ELE_FACTOR = 1.3;
   
 
   /**
@@ -92,20 +92,15 @@ public class Robot extends TimedRobot {
    */
   @Override
   public void teleopPeriodic() {
-    if(xboxDrv.getY(Hand.kLeft) > 0)
+    if(xboxDrv.getAButton() == true)
     {
-      elevator.upperElevator(ELE_POWER * ELE_FACTOR);
-      elevator.lowerElevator(ELE_POWER);
-    }
-    else if (xboxDrv.getY(Hand.kLeft) < 0)
-    {
-      elevator.upperElevator(-ELE_POWER * ELE_FACTOR);
-      elevator.lowerElevator(-ELE_POWER);
+      elevator.runElevatorA(ELE_POWER);
+      elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
     }
     else
     {
-      elevator.upperElevator(0);
-      elevator.lowerElevator(0);
+      elevator.runElevatorA(0);
+      elevator.runElevatorB(0);
     }
   }
 
