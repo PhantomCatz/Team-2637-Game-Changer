@@ -36,8 +36,11 @@ public class Robot extends TimedRobot
   private final int XBOX_DRV_PORT = 0;
   private final int XBOX_AUX_PORT = 1;
 
+
   public final double ELE_POWER = 0.5;
   public final double ELE_FACTOR = 1.3;
+
+ 
 
   private final int DPAD_UP = 0;
   private final int DPAD_DN = 180;
@@ -59,6 +62,14 @@ public class Robot extends TimedRobot
   
     
 
+    xboxAux = new XboxController(1);
+    shooter = new CatzShooter();
+
+
+  elevator = new CatzElevator();
+  
+    
+
   }
 
   /**
@@ -70,12 +81,11 @@ public class Robot extends TimedRobot
    * LiveWindow and SmartDashboard integrated updating.
    */
   @Override
+
   public void robotPeriodic() 
   {
-
     SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
     SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
-
   }
 
   /**
@@ -118,6 +128,7 @@ public class Robot extends TimedRobot
    * This function is called periodically during operator control.
    */
   @Override
+
   public void teleopPeriodic() 
   {
       //-----------------------shooter-----------------------
