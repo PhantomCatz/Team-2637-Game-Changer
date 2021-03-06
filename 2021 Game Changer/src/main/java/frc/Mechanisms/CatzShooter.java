@@ -59,6 +59,8 @@ public class CatzShooter
     public double shooterPower       = 0.0;
     public double minPower           = 0.0;
     public double maxPower           = 0.0;
+    
+    public static double avgVelocity = 0.0;
 
     public static int shooterState = SHOOTER_STATE_OFF;
 
@@ -71,7 +73,6 @@ public class CatzShooter
 
     private boolean shooterIsReady = false;
     public  boolean shooterIsDone  = true;
-    double avgVelocity             = 0.0;
 
     private Thread shooterThread;
 
