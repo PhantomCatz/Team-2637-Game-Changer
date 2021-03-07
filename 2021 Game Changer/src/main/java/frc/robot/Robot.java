@@ -38,7 +38,6 @@ public class Robot extends TimedRobot
   public static CatzDriveTrain driveTrain;
 
   public static DataCollection dataCollection;
-  public static CatzLog catzLog;
   public ArrayList<CatzLog> dataArrayList; 
 
   public static Timer dataCollectionTimer;

@@ -44,8 +44,8 @@ public class CatzShooter
     final double SHOOTER_RAMP_RPM_OFFSET = 200.0;
 
     final double SHOOTER_OFF_POWER   =  0.0;
-    final double SHOOTER_RAMP_POWER  = -1.0;
-    final double SHOOTER_SHOOT_POWER = -1.0;
+    final double SHOOTER_RAMP_POWER  = 1.0;
+    final double SHOOTER_SHOOT_POWER = 1.0;
 
     final int NUM_OF_DATA_SAMPLES_TO_AVERAGE = 5;
 
@@ -148,8 +148,7 @@ public class CatzShooter
             			    shooterIsDone           = false;
 
                             getBangBangPower();
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
+                            setShooterPower(shooterPower);
 
                             System.out.println("T1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
                         }
@@ -157,14 +156,13 @@ public class CatzShooter
                     break;
 
                     case SHOOTER_STATE_RAMPING: // once targetRPM is given, velocity ramps up as fast as possible to reach targetRPM
-                        //Robot.indexer.setShooterRamping(true);
+                        System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
                         if(flywheelShaftVelocity > targetRPMThreshold)
                         {
                             shooterState = SHOOTER_STATE_SET_SPEED;
                             shooterPower = maxPower;
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
-                            System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
+                            setShooterPower(shooterPower);
+                            System.out.println("T2A: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
 
                         }
                         rampStateCount++;
@@ -206,8 +204,7 @@ public class CatzShooter
 
                     case SHOOTER_STATE_START_SHOOTING: 
                         shooterPower = SHOOTER_SHOOT_POWER;
-                        shtrMCA.set(shooterPower);   
-                        shtrMCB.set(-shooterPower); 
+                        setShooterPower(shooterPower);
                         System.out.println("TS1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
 
                         if(flywheelShaftVelocity > targetRPM + SHOOTER_RPM_START_OFFSET)
@@ -234,10 +231,11 @@ public class CatzShooter
                     default:  //default code when there is nothing going on 
                         shooterOff();
                     break;
-            }        
-            Timer.delay(SHOOTER_THREAD_PERIOD);
-        }
-    }); //end of thread
+                }        
+                Timer.delay(SHOOTER_THREAD_PERIOD);
+
+            }
+        }); //end of thread
         shooterThread.start();
     }
 
@@ -246,6 +244,11 @@ public class CatzShooter
        double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
        minPower = -(power - 0.01);
        maxPower = -(power + 0.01);
+    }
+
+    public void setShooterPower(double power){
+        shtrMCA.set(-power);
+        shtrMCB.set(power);
     }
 
     public void bangBang(double minRPM, double maxRPM, double flywheelShaftVelocity) // bangbang method
@@ -258,8 +261,7 @@ public class CatzShooter
         {
             shooterPower = maxPower;
         }
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
+        setShooterPower(shooterPower);
     }
 
     public double getFlywheelShaftPosition() //encoder counts
@@ -293,8 +295,7 @@ public class CatzShooter
 	    shooterIsDone  = true;
         shooterState   = SHOOTER_STATE_OFF;
         shooterPower   = SHOOTER_OFF_POWER;
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
+        setShooterPower(shooterPower);
         //Robot.indexer.setShooterIsRunning(false);
         Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0);
     
