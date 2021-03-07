@@ -77,6 +77,8 @@ public class CatzShooter
 
     public boolean inAutonomous;
 
+    public Timer shooterTimer;
+
     public CatzShooter()
     {
         //initialize motor controllers
@@ -119,7 +121,7 @@ public class CatzShooter
 
             while(true)
             {
-                //shootTime = Robot.dataCollectionTimer.get();
+                shootTime = shooterTimer.get();
                 flywheelShaftVelocity = getFlywheelShaftVelocity();
 
                 switch (shooterState)
