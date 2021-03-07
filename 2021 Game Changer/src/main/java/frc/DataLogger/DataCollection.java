@@ -211,9 +211,6 @@ public class DataCollection
                 break;
                 
             case LOG_ID_SHOOTER:
-                data1 = Robot.shooter.targetRPM;
-                data2 = Robot.shooter.getFlywheelShaftVelocity();
-                data3 = Robot.shooter.avgVelocity;
                 break;
             case LOG_ID_DRV_STRAIGHT:
                 break;

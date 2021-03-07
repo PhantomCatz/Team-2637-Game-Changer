@@ -6,6 +6,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import frc.DataLogger.CatzLog;
 import frc.robot.Robot;
 
 public class CatzShooter
@@ -78,6 +79,8 @@ public class CatzShooter
 
     public boolean inAutonomous;
 
+    private CatzLog data;
+
     public CatzShooter()
     {
         //initialize motor controllers
@@ -148,11 +151,6 @@ public class CatzShooter
                             shtrMCA.set(shooterPower);
                             shtrMCB.set(-shooterPower);
 
-                            for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                            {
-                                velocityData[i] = 0.0;
-                            }
-
                             System.out.println("T1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
                         }
 
@@ -177,36 +175,9 @@ public class CatzShooter
                         break;
 
                     case SHOOTER_STATE_SET_SPEED: // making bang bang work. adds up RPM (prerequisite for bang bang, checks average of )
-                        samplingVelocityCount++;
-                        if(samplingVelocityCount > samplingVelocityCountLimit)
+                        if(flywheelShaftVelocity > minRPM && flywheelShaftVelocity < maxRPM)
                         {
-                            samplingVelocityCount = 0;
-                            velocityData[velocityDataIndex++ ] = flywheelShaftVelocity;
-                            System.out.print("S");
-                            //Robot.indexer.setShooterRamping(false);
-                            if(velocityDataIndex == NUM_OF_DATA_SAMPLES_TO_AVERAGE)
-                            {
-                                velocityDataIndex = 0;
-                                readyToCalculateAverage = true;
-                            }
-
-                            if(readyToCalculateAverage == true)
-                            {
-                                
-                                for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                                {  
-                                    sumOfVelocityData = sumOfVelocityData + velocityData[i];
-                                }
-                        
-                                avgVelocity = sumOfVelocityData / NUM_OF_DATA_SAMPLES_TO_AVERAGE;
-                                sumOfVelocityData = 0.0;
-                                System.out.println("AD: " + avgVelocity);
-                            }
-
-                            if(avgVelocity > minRPM && avgVelocity < maxRPM)
-                            {
-                                shooterState = SHOOTER_STATE_READY;
-                            }
+                            shooterState = SHOOTER_STATE_READY;
                         }
 
                         bangBang(minRPM, maxRPM, flywheelShaftVelocity);
