@@ -242,8 +242,8 @@ public class CatzShooter
     public void getBangBangPower() //determines max and min power based on the velocity chosen
     {                              //10000) + 0.04
        double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
-       minPower = -(power - 0.01);
-       maxPower = -(power + 0.01);
+       minPower = (power - 0.01);
+       maxPower = (power + 0.01);
     }
 
     public void setShooterPower(double power){
