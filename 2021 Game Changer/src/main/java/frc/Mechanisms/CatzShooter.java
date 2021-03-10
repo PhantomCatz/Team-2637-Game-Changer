@@ -40,11 +40,11 @@ public class CatzShooter
     final double SHOOTER_BANG_BANG_MAX_RPM_OFFSET = 10.0; 
     final double SHOOTER_BANG_BANG_MIN_RPM_OFFSET = 10.0;
 
-    final double SHOOTER_RAMP_RPM_OFFSET = 200.0;
+    final double SHOOTER_RAMP_RPM_OFFSET = 1000.0;
 
     final double SHOOTER_OFF_POWER   =  0.0;
-    final double SHOOTER_RAMP_POWER  = -1.0;
-    final double SHOOTER_SHOOT_POWER = -1.0;
+    final double SHOOTER_RAMP_POWER  = 1.0;
+    final double SHOOTER_SHOOT_POWER = 1.0;
 
     final int NUM_OF_DATA_SAMPLES_TO_AVERAGE = 5;
 
@@ -59,6 +59,8 @@ public class CatzShooter
     public double shooterPower       = 0.0;
     public double minPower           = 0.0;
     public double maxPower           = 0.0;
+    
+    public static double avgVelocity = 0.0;
 
     public static int shooterState = SHOOTER_STATE_OFF;
 
@@ -71,16 +73,18 @@ public class CatzShooter
 
     private boolean shooterIsReady = false;
     public  boolean shooterIsDone  = true;
-    double avgVelocity             = 0.0;
 
     private Thread shooterThread;
 
     public boolean inAutonomous;
 
-    public Timer shooterTimer;
+    public Timer shootTimer;
+
 
     public CatzShooter()
     {
+        shootTimer = new Timer();
+
         //initialize motor controllers
         shtrMCA = new WPI_TalonFX(SHTR_MC_ID_A);
         shtrMCB = new WPI_TalonFX(SHTR_MC_ID_B);
@@ -102,6 +106,7 @@ public class CatzShooter
         
         setShooterVelocity();
         shooterOff();
+
     }
 
     public void setShooterVelocity() //will make shooter run and etc
@@ -109,6 +114,9 @@ public class CatzShooter
 
         shooterThread = new Thread(() -> //start of thread
         {
+
+            shootTimer.start();
+
             double flywheelShaftVelocity    = -1.0;
             double minRPM                   = 0.0;
             double maxRPM                   = 0.0;
@@ -121,7 +129,7 @@ public class CatzShooter
 
             while(true)
             {
-                shootTime = shooterTimer.get();
+                shootTime = shootTimer.get();
                 flywheelShaftVelocity = getFlywheelShaftVelocity();
 
                 switch (shooterState)
@@ -146,13 +154,7 @@ public class CatzShooter
             			    shooterIsDone           = false;
 
                             getBangBangPower();
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
-
-                            for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                            {
-                                velocityData[i] = 0.0;
-                            }
+                            setShooterPower(shooterPower);
 
                             System.out.println("T1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
                         }
@@ -160,14 +162,13 @@ public class CatzShooter
                     break;
 
                     case SHOOTER_STATE_RAMPING: // once targetRPM is given, velocity ramps up as fast as possible to reach targetRPM
-                        //Robot.indexer.setShooterRamping(true);
+                        System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
                         if(flywheelShaftVelocity > targetRPMThreshold)
                         {
                             shooterState = SHOOTER_STATE_SET_SPEED;
                             shooterPower = maxPower;
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
-                            System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
+                            setShooterPower(shooterPower);
+                            System.out.println("T2A: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
 
                         }
                         rampStateCount++;
@@ -178,36 +179,9 @@ public class CatzShooter
                         break;
 
                     case SHOOTER_STATE_SET_SPEED: // making bang bang work. adds up RPM (prerequisite for bang bang, checks average of )
-                        samplingVelocityCount++;
-                        if(samplingVelocityCount > samplingVelocityCountLimit)
+                        if(flywheelShaftVelocity > minRPM && flywheelShaftVelocity < maxRPM)
                         {
-                            samplingVelocityCount = 0;
-                            velocityData[velocityDataIndex++ ] = flywheelShaftVelocity;
-                            System.out.print("S");
-                            //Robot.indexer.setShooterRamping(false);
-                            if(velocityDataIndex == NUM_OF_DATA_SAMPLES_TO_AVERAGE)
-                            {
-                                velocityDataIndex = 0;
-                                readyToCalculateAverage = true;
-                            }
-
-                            if(readyToCalculateAverage == true)
-                            {
-                                
-                                for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                                {  
-                                    sumOfVelocityData = sumOfVelocityData + velocityData[i];
-                                }
-                        
-                                avgVelocity = sumOfVelocityData / NUM_OF_DATA_SAMPLES_TO_AVERAGE;
-                                sumOfVelocityData = 0.0;
-                                System.out.println("AD: " + avgVelocity);
-                            }
-
-                            if(avgVelocity > minRPM && avgVelocity < maxRPM)
-                            {
-                                shooterState = SHOOTER_STATE_READY;
-                            }
+                            shooterState = SHOOTER_STATE_READY;
                         }
 
                         bangBang(minRPM, maxRPM, flywheelShaftVelocity);
@@ -236,8 +210,7 @@ public class CatzShooter
 
                     case SHOOTER_STATE_START_SHOOTING: 
                         shooterPower = SHOOTER_SHOOT_POWER;
-                        shtrMCA.set(shooterPower);   
-                        shtrMCB.set(-shooterPower); 
+                        setShooterPower(shooterPower);
                         System.out.println("TS1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
 
                         if(flywheelShaftVelocity > targetRPM + SHOOTER_RPM_START_OFFSET)
@@ -264,18 +237,24 @@ public class CatzShooter
                     default:  //default code when there is nothing going on 
                         shooterOff();
                     break;
-            }        
-            Timer.delay(SHOOTER_THREAD_PERIOD);
-        }
-    }); //end of thread
+                }        
+                Timer.delay(SHOOTER_THREAD_PERIOD);
+
+            }
+        }); //end of thread
         shooterThread.start();
     }
 
     public void getBangBangPower() //determines max and min power based on the velocity chosen
     {                              //10000) + 0.04
        double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
-       minPower = -(power - 0.01);
-       maxPower = -(power + 0.01);
+       minPower = (power - 0.01);
+       maxPower = (power + 0.01);
+    }
+
+    public void setShooterPower(double power){
+        shtrMCA.set(-power);
+        shtrMCB.set(power);
     }
 
     public void bangBang(double minRPM, double maxRPM, double flywheelShaftVelocity) // bangbang method
@@ -288,8 +267,7 @@ public class CatzShooter
         {
             shooterPower = maxPower;
         }
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
+        setShooterPower(shooterPower);
     }
 
     public double getFlywheelShaftPosition() //encoder counts
@@ -323,8 +301,7 @@ public class CatzShooter
 	    shooterIsDone  = true;
         shooterState   = SHOOTER_STATE_OFF;
         shooterPower   = SHOOTER_OFF_POWER;
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
+        setShooterPower(shooterPower);
         //Robot.indexer.setShooterIsRunning(false);
         Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0);
     
