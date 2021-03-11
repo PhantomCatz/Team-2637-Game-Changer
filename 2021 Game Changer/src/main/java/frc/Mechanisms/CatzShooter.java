@@ -2,6 +2,7 @@ package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.VelocityMeasPeriod;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.Timer;
@@ -12,6 +13,7 @@ public class CatzShooter
 {
     public WPI_TalonFX shtrMCA;
     public WPI_TalonFX shtrMCB;
+
 
     private final int SHTR_MC_ID_A = 10; 
     private final int SHTR_MC_ID_B = 11; 
@@ -43,14 +45,14 @@ public class CatzShooter
     final double SHOOTER_RAMP_RPM_OFFSET = 1000.0;
 
     final double SHOOTER_OFF_POWER   =  0.0;
-    final double SHOOTER_RAMP_POWER  = 1.0;
+    final double SHOOTER_RAMP_POWER  = 0.8; 
     final double SHOOTER_SHOOT_POWER = 1.0;
 
     final int NUM_OF_DATA_SAMPLES_TO_AVERAGE = 5;
 
     final double SHOOTER_THREAD_PERIOD           = 0.040;
     final long   SHOOTER_THREAD_PERIOD_MS        = 40;
-    final double SHOOTER_RAMP_TIMEOUT_SEC        = 4.000;  //TBD-TEST put back to 4.0
+    final double SHOOTER_RAMP_TIMEOUT_SEC        = 4.000; 
     final double INDEXER_SHOOT_TIME_SEC          = 1.60;
     final double SHOOTER_AVG_VEL_SAMPLE_TIME_SEC = 0.100;
 
@@ -96,6 +98,9 @@ public class CatzShooter
 
         shtrMCA.setNeutralMode(NeutralMode.Coast);
         shtrMCB.setNeutralMode(NeutralMode.Coast);
+
+        shtrMCA.configVelocityMeasurementPeriod(VelocityMeasPeriod.Period_20Ms, 30);
+        shtrMCA.configVelocityMeasurementWindow(32, 30);
 
         //limits how long the shooter runs so it doesn't go too long (limiter)
         indexerShootStateCountLimit = (int)Math.round( (INDEXER_SHOOT_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5 ); 
@@ -163,7 +168,7 @@ public class CatzShooter
 
                     case SHOOTER_STATE_RAMPING: // once targetRPM is given, velocity ramps up as fast as possible to reach targetRPM
                         System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
-                        if(flywheelShaftVelocity > targetRPMThreshold)
+                        if(flywheelShaftVelocity > targetRPMThreshold) 
                         {
                             shooterState = SHOOTER_STATE_SET_SPEED;
                             shooterPower = maxPower;
@@ -172,10 +177,19 @@ public class CatzShooter
 
                         }
                         rampStateCount++;
+                        if (rampStateCount > 2) 
+                        {
+                            shooterState = SHOOTER_STATE_SET_SPEED;
+                            shooterPower = maxPower;
+                            setShooterPower(shooterPower);
+                            System.out.println("T2B: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
+
+                        }
                         if(rampStateCount > rampStateCountLimit)
                         {
                             shooterOff();
                         }
+
                         break;
 
                     case SHOOTER_STATE_SET_SPEED: // making bang bang work. adds up RPM (prerequisite for bang bang, checks average of )
@@ -247,9 +261,9 @@ public class CatzShooter
 
     public void getBangBangPower() //determines max and min power based on the velocity chosen
     {                              //10000) + 0.04
-       double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
-       minPower = (power - 0.01);
-       maxPower = (power + 0.01);
+       double power =  ((targetRPM) / 6410.0) + 0.02; //+0.05    
+       minPower = (power - 0.02);
+       maxPower = (power + 0.02);
     }
 
     public void setShooterPower(double power){
