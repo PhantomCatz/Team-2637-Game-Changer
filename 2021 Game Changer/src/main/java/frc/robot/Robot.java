@@ -7,19 +7,13 @@
 
 package frc.robot;
 
-import java.util.ArrayList;
-
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.Mechanisms.CatzShooter;
-import frc.DataLogger.CatzLog;
-import frc.DataLogger.DataCollection;
-import frc.Mechanisms.CatzDriveTrain;
 import frc.Mechanisms.CatzElevator;
 
 /**
@@ -35,12 +29,6 @@ public class Robot extends TimedRobot
 
   public static CatzShooter shooter;
   public static CatzElevator elevator;
-  public static CatzDriveTrain driveTrain;
-
-  public static DataCollection dataCollection;
-  public ArrayList<CatzLog> dataArrayList; 
-
-  public static Timer dataCollectionTimer;
   
   public static XboxController xboxDrv;
   public static XboxController xboxAux;
@@ -63,6 +51,8 @@ public class Robot extends TimedRobot
    * used for any initialization code.
    */
 
+   //WPI_TalonFX MA, MB;
+
   @Override
   public void robotInit() 
   {
@@ -71,19 +61,11 @@ public class Robot extends TimedRobot
 
     shooter = new CatzShooter();
     elevator = new CatzElevator();
-    driveTrain = new CatzDriveTrain();
+
+    //MA = new WPI_TalonFX(10);
+    //MB = new WPI_TalonFX(11);
     
 
-    xboxAux = new XboxController(1);
-    shooter = new CatzShooter();
-
-    dataArrayList = new ArrayList<CatzLog>();
-
-    dataCollection = new DataCollection();
-
-    dataCollectionTimer = new Timer();
-
-    dataCollection.dataCollectionInit(dataArrayList);
   }
 
   /**
@@ -98,8 +80,8 @@ public class Robot extends TimedRobot
 
   public void robotPeriodic() 
   {
-    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
-    SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
+    //SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getRPM());
+    //SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
   }
 
   /**
@@ -136,11 +118,6 @@ public class Robot extends TimedRobot
   @Override
   public void teleopInit() 
   {
-    dataCollection.dataCollectionInit(dataArrayList);
-    dataCollectionTimer.reset();
-    dataCollectionTimer.start();
-    dataCollection.setLogDataID(dataCollection.LOG_ID_SHOOTER);
-    dataCollection.startDataCollection();
   }
 
   /**
@@ -150,6 +127,7 @@ public class Robot extends TimedRobot
 
   public void teleopPeriodic() 
   {
+    /*
       //-----------------------shooter-----------------------
       if(xboxAux.getPOV() == DPAD_UP)
       {
@@ -173,10 +151,10 @@ public class Robot extends TimedRobot
       {
         shooter.shooterOff();
       }  
-
+      */
     //-----------------------Elevator-----------------------
 
-      if(xboxDrv.getAButton() == true)
+      if(xboxAux.getAButton() == true)
       {
         elevator.runElevatorA(ELE_POWER);
         elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
@@ -187,6 +165,16 @@ public class Robot extends TimedRobot
         elevator.runElevatorB(0);
 
       }
+      /*
+      if(xboxAux.getYButton())
+      {
+        MA.set(-1);
+        MB.set(1);
+      } else if(xboxAux.getXButton())
+      {
+        MA.set(0);
+        MB.set(0);
+      } */
   }
 
   /**
