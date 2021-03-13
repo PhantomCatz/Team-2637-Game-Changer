@@ -14,7 +14,6 @@ public class CatzShooter
     public WPI_TalonFX shtrMCA;
     public WPI_TalonFX shtrMCB;
 
-
     private final int SHTR_MC_ID_A = 10; 
     private final int SHTR_MC_ID_B = 11; 
 
@@ -61,8 +60,14 @@ public class CatzShooter
     public double shooterPower       = 0.0;
     public double minPower           = 0.0;
     public double maxPower           = 0.0;
-    
+    public double nomPower           = 0.0;
+
+    public final double kP = 0.0001;
+
     public static double avgVelocity = 0.0;
+
+    public double lastSamplePeriod = 0.0;
+    public double lastEncCounts = 0.0;
 
     public static int shooterState = SHOOTER_STATE_OFF;
 
@@ -135,7 +140,7 @@ public class CatzShooter
             while(true)
             {
                 shootTime = shootTimer.get();
-                flywheelShaftVelocity = getFlywheelShaftVelocity();
+                flywheelShaftVelocity = getFlywheelShaftVelocity(shootTime);
 
                 switch (shooterState)
                 {
@@ -154,11 +159,12 @@ public class CatzShooter
                             targetRPMThreshold      = targetRPM - SHOOTER_RAMP_RPM_OFFSET;
                             minRPM                  = targetRPM - SHOOTER_BANG_BANG_MIN_RPM_OFFSET;
                             maxRPM                  = targetRPM + SHOOTER_BANG_BANG_MAX_RPM_OFFSET;
-                            shooterPower            = SHOOTER_RAMP_POWER;
                             rumbleSet               = false;
             			    shooterIsDone           = false;
 
-                            getBangBangPower();
+                            getNominalPower();
+                            shooterPower = nomPower;
+
                             setShooterPower(shooterPower);
 
                             System.out.println("T1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
@@ -171,8 +177,8 @@ public class CatzShooter
                         if(flywheelShaftVelocity > targetRPMThreshold) 
                         {
                             shooterState = SHOOTER_STATE_SET_SPEED;
-                            shooterPower = maxPower;
-                            setShooterPower(shooterPower);
+                            //shooterPower = maxPower;
+                            //setShooterPower(shooterPower);
                             System.out.println("T2A: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
 
                         }
@@ -180,8 +186,8 @@ public class CatzShooter
                         if (rampStateCount > 2) 
                         {
                             shooterState = SHOOTER_STATE_SET_SPEED;
-                            shooterPower = maxPower;
-                            setShooterPower(shooterPower);
+                            //shooterPower = maxPower;
+                            //setShooterPower(shooterPower);
                             System.out.println("T2B: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
 
                         }
@@ -198,7 +204,8 @@ public class CatzShooter
                             shooterState = SHOOTER_STATE_READY;
                         }
 
-                        bangBang(minRPM, maxRPM, flywheelShaftVelocity);
+                        updateShooterPower(flywheelShaftVelocity);
+                        //bangBang(minRPM, maxRPM, flywheelShaftVelocity);
 
                         System.out.println("T3: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
 
@@ -206,8 +213,10 @@ public class CatzShooter
 
                     case SHOOTER_STATE_READY:// makes the controller vibrate so that aux driver knows to shoot
                         shooterIsReady = true;
-                        System.out.println("SSR");
-                        bangBang(minRPM, maxRPM, flywheelShaftVelocity);   
+                        updateShooterPower(flywheelShaftVelocity);
+                        System.out.println("T4: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
+
+                        //bangBang(minRPM, maxRPM, flywheelShaftVelocity);   
 
                         if(inAutonomous == true)
                         { 
@@ -261,12 +270,36 @@ public class CatzShooter
 
     public void getBangBangPower() //determines max and min power based on the velocity chosen
     {                              //10000) + 0.04
-       double power =  ((targetRPM) / 6410.0) + 0.02; //+0.05    
-       minPower = (power - 0.02);
-       maxPower = (power + 0.02);
+       minPower = (nomPower - 0.02);
+       maxPower = (nomPower + 0.02);
     }
 
-    public void setShooterPower(double power){
+    public void getNominalPower()
+    {
+        nomPower =  ((targetRPM) / 6410.0) + 0.02; //+0.05    
+    
+    }
+
+    public void updateShooterPower(double currentRPM)
+    {   
+        double RPMError;
+        double powerOffset;
+
+        RPMError = currentRPM - targetRPM;
+        powerOffset = RPMError * kP;
+        shooterPower = shooterPower - powerOffset;
+
+        if (shooterPower > 1.0)
+        {
+            shooterPower = 1.0;
+        }
+
+        setShooterPower(shooterPower);
+
+    }
+
+    public void setShooterPower(double power)
+    {
         shtrMCA.set(-power);
         shtrMCB.set(power);
     }
@@ -289,9 +322,24 @@ public class CatzShooter
         return shtrMCA.getSensorCollection().getIntegratedSensorPosition();
     }
 
-    public double getFlywheelShaftVelocity() //RPM
+    public double getFlywheelShaftVelocity(double samplePeriod) //RPM
     {
-        return (Math.abs((double) shtrMCA.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM)); 
+        double deltaTime = samplePeriod - lastSamplePeriod;
+        double currentEncCounts = (double) shtrMCB.getSelectedSensorPosition(0);
+        double deltaCounts = currentEncCounts - lastEncCounts;
+
+        double velocityCounts = deltaCounts/deltaTime;
+
+        double velocity = (velocityCounts/2048.0)*60.0;
+
+        lastSamplePeriod = samplePeriod;
+        lastEncCounts = currentEncCounts;
+
+        System.out.println("dT: " + deltaTime + " " + "dC: " + deltaCounts);
+
+        return velocity;
+
+        //return (Math.abs((double) shtrMCA.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM)); 
     }
 
     public void setTargetRPM(double velocity) // Sets the RPM (determined by the button pressed on controller)
