@@ -127,8 +127,7 @@ public class Robot extends TimedRobot
 
   public void teleopPeriodic() 
   {
-    /*
-      //-----------------------shooter-----------------------
+    //-----------------------shooter-----------------------
       if(xboxAux.getPOV() == DPAD_UP)
       {
         shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
@@ -150,8 +149,7 @@ public class Robot extends TimedRobot
       else if(xboxAux.getStartButton())
       {
         shooter.shooterOff();
-      }  
-      */
+      }
     //-----------------------Elevator-----------------------
 
       if(xboxAux.getAButton() == true)
