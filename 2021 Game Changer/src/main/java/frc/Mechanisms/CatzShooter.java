@@ -94,12 +94,12 @@ public class CatzShooter
     private double mtrVelocityA    = -1.0;
     private double mtrVelocityB    = -1.0;
 
-    private double PID_PA = 0.001;
+    private double PID_PA = 0.000;
     private double PID_I = 0.0;
     private double PID_D = 0.0;
-    private double PID_F = (1023.0/20660);
+    private double PID_F = (1023.0/21660);
 
-    private double PID_PB = 0.001;
+    private double PID_PB = 0.000;
 
     private int PID_IDX_CLOSED_LOOP = 0;
     private int PID_TIMEOUT_MS = 10;
@@ -178,7 +178,7 @@ public class CatzShooter
                         {
                             indexerShootStateCount  = 0;
                             rampStateCount          = 0;
-                            shooterState            = SHOOTER_STATE_RAMPING;
+                            shooterState            = SHOOTER_WAIT_FOR_STEADY_STATE;
                             minRPM                  = targetRPM - SHOOTER_MIN_RPM_OFFSET;
                             maxRPM                  = targetRPM + SHOOTER_MAX_RPM_OFFSET;
                             shtrWaitStateCounter    = 0;
@@ -249,7 +249,8 @@ public class CatzShooter
                         shooterOff();
                     break;
                 }        
-                System.out.println(shooterTraceID + " : " + shootTime + " : " + shooterRPM + " : " + mtrVelocityA + " : " + mtrVelocityB);
+                if(shooterTraceID>0)
+                    System.out.println(shooterTraceID + " : " + shootTime + " : " + shooterRPM + " : " + mtrVelocityA + " : " + mtrVelocityB);
                 Timer.delay(SHOOTER_THREAD_PERIOD);
 
             }
@@ -259,7 +260,7 @@ public class CatzShooter
 
     public void setShooterRPM(double rpm)
     {
-        double velocityB = rpm * (2048) * (1/60) * (1/10);
+        double velocityB = rpm * (2048.0) * (1.0/60.0) * (1.0/10.0);
         double velocityA = -velocityB;
         shtrMCA.set(TalonFXControlMode.Velocity, velocityA);
         shtrMCB.set(TalonFXControlMode.Velocity, velocityB);

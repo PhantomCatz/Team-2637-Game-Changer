@@ -127,52 +127,54 @@ public class Robot extends TimedRobot
 
   public void teleopPeriodic() 
   {
+    
     //-----------------------shooter-----------------------
-      if(xboxAux.getPOV() == DPAD_UP)
-      {
-        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
-        //shooter.setTargetVelocity(.25);
-      }
-      else if(xboxAux.getPOV() == DPAD_LT)
-      {
-      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
-      }
-      else if(xboxAux.getPOV() == DPAD_DN)
-      {
-        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
-      }
-      else if(xboxAux.getBButton())
-      {
-        //indexer.setShooterIsRunning(true);
-        shooter.shoot();
-      } 
-      else if(xboxAux.getStartButton())
-      {
-        shooter.shooterOff();
-      }
+    if(xboxAux.getPOV() == DPAD_UP)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
+      //shooter.setTargetVelocity(.25);
+    }
+    else if(xboxAux.getPOV() == DPAD_LT)
+    {
+    shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
+    }
+    else if(xboxAux.getPOV() == DPAD_DN)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
+    }
+    else if(xboxAux.getBButton())
+    {
+      //indexer.setShooterIsRunning(true);
+      shooter.shoot();
+    } 
+    else if(xboxAux.getStartButton())
+    {
+      shooter.shooterOff();
+    }  
+    
     //-----------------------Elevator-----------------------
 
-      if(xboxAux.getAButton() == true)
-      {
-        elevator.runElevatorA(ELE_POWER);
-        elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
-      }
-      else
-      {
-        elevator.runElevatorA(0);
-        elevator.runElevatorB(0);
+    if(xboxAux.getAButton() == true)
+    {
+      elevator.runElevatorA(ELE_POWER);
+      elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
+    }
+    else
+    {
+      elevator.runElevatorA(0);
+      elevator.runElevatorB(0);
 
-      }
-      /*
-      if(xboxAux.getYButton())
-      {
-        MA.set(-1);
-        MB.set(1);
-      } else if(xboxAux.getXButton())
-      {
-        MA.set(0);
-        MB.set(0);
-      } */
+    }
+    /*
+    if(xboxAux.getYButton())
+    {
+      MA.set(-1);
+      MB.set(1);
+    } else if(xboxAux.getXButton())
+    {
+      MA.set(0);
+      MB.set(0);
+    } */
   }
 
   /**
