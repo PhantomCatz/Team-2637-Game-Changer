@@ -7,9 +7,14 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.GenericHID.Hand;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.Mechanisms.CatzShooter;
+import frc.Mechanisms.CatzElevator;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -18,21 +23,53 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * creating this project, you must also update the build.gradle file in the
  * project.
  */
-public class Robot extends TimedRobot {
-  private static final String kDefaultAuto = "Default";
-  private static final String kCustomAuto = "My Auto";
-  private String m_autoSelected;
-  private final SendableChooser<String> m_chooser = new SendableChooser<>();
+public class Robot extends TimedRobot 
+{
 
+
+  public static CatzShooter shooter;
+  public static CatzElevator elevator;
+  
+  public static XboxController xboxDrv;
+  public static XboxController xboxAux;
+
+  private final int XBOX_DRV_PORT = 0;
+  private final int XBOX_AUX_PORT = 1;
+
+
+  public final double ELE_POWER = 0.5;
+  public final double ELE_FACTOR = 1.3;
+
+ 
+
+  private final int DPAD_UP = 0;
+  private final int DPAD_DN = 180;
+  private final int DPAD_LT = 270;
+  private final int DPAD_RT = 90;
   /**
    * This function is run when the robot is first started up and should be
    * used for any initialization code.
    */
+
   @Override
-  public void robotInit() {
-    m_chooser.setDefaultOption("Default Auto", kDefaultAuto);
-    m_chooser.addOption("My Auto", kCustomAuto);
-    SmartDashboard.putData("Auto choices", m_chooser);
+  public void robotInit() 
+  {
+    xboxDrv = new XboxController(XBOX_DRV_PORT);
+    xboxAux = new XboxController(XBOX_AUX_PORT);
+
+    shooter = new CatzShooter();
+    elevator = new CatzElevator();
+  
+    
+
+    xboxAux = new XboxController(1);
+    shooter = new CatzShooter();
+
+
+  elevator = new CatzElevator();
+  
+    
+
   }
 
   /**
@@ -44,7 +81,11 @@ public class Robot extends TimedRobot {
    * LiveWindow and SmartDashboard integrated updating.
    */
   @Override
-  public void robotPeriodic() {
+
+  public void robotPeriodic() 
+  {
+    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
+    SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
   }
 
   /**
@@ -59,67 +100,105 @@ public class Robot extends TimedRobot {
    * SendableChooser make sure to add them to the chooser code above as well.
    */
   @Override
-  public void autonomousInit() {
-    m_autoSelected = m_chooser.getSelected();
-    // m_autoSelected = SmartDashboard.getString("Auto Selector", kDefaultAuto);
-    System.out.println("Auto selected: " + m_autoSelected);
+  public void autonomousInit() 
+  {
+
   }
 
   /**
    * This function is called periodically during autonomous.
    */
   @Override
-  public void autonomousPeriodic() {
-    switch (m_autoSelected) {
-      case kCustomAuto:
-        // Put custom auto code here
-        break;
-      case kDefaultAuto:
-      default:
-        // Put default auto code here
-        break;
-    }
+  public void autonomousPeriodic() 
+  {
+
+
   }
+
 
   /**
    * This function is called once when teleop is enabled.
    */
   @Override
-  public void teleopInit() {
+  public void teleopInit() 
+  {
   }
 
   /**
    * This function is called periodically during operator control.
    */
   @Override
-  public void teleopPeriodic() {
+
+  public void teleopPeriodic() 
+  {
+      //-----------------------shooter-----------------------
+      if(xboxAux.getPOV() == DPAD_UP)
+      {
+        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
+        //shooter.setTargetVelocity(.25);
+      }
+      else if(xboxAux.getPOV() == DPAD_LT)
+      {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
+      }
+      else if(xboxAux.getPOV() == DPAD_DN)
+      {
+        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
+      }
+      else if(xboxAux.getBButton())
+      {
+        //indexer.setShooterIsRunning(true);
+        shooter.shoot();
+      } 
+      else if(xboxAux.getStartButton())
+      {
+        shooter.shooterOff();
+      }  
+
+    //-----------------------Elevator-----------------------
+
+      if(xboxDrv.getAButton() == true)
+      {
+        elevator.runElevatorA(ELE_POWER);
+        elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
+      }
+      else
+      {
+        elevator.runElevatorA(0);
+        elevator.runElevatorB(0);
+
+      }
   }
 
   /**
    * This function is called once when the robot is disabled.
    */
   @Override
-  public void disabledInit() {
+  public void disabledInit() 
+  {
   }
 
   /**
    * This function is called periodically when disabled.
    */
   @Override
-  public void disabledPeriodic() {
+  public void disabledPeriodic() 
+  {
   }
 
   /**
    * This function is called once when test mode is enabled.
    */
   @Override
-  public void testInit() {
+  public void testInit() 
+  {
   }
 
   /**
    * This function is called periodically during test mode.
    */
   @Override
-  public void testPeriodic() {
+  public void testPeriodic() 
+  {
   }
 }
