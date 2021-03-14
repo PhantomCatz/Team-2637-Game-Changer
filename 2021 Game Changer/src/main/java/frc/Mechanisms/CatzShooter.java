@@ -40,8 +40,8 @@ public class CatzShooter
     public final double SHOOTER_TARGET_RPM_MD    = 4000;//(5000.0 - SHOOTER_RPM_START_OFFSET);
     public final double SHOOTER_TARGET_RPM_HI    = 4500;//(6000.0 - SHOOTER_RPM_START_OFFSET);
 
-    final double SHOOTER_MAX_RPM_OFFSET = 10.0; 
-    final double SHOOTER_MIN_RPM_OFFSET = 10.0;
+    final double SHOOTER_MAX_RPM_OFFSET = 50.0; 
+    final double SHOOTER_MIN_RPM_OFFSET = 50.0;
 
     final double SHOOTER_RAMP_RPM_OFFSET = 1000.0;
 
@@ -91,15 +91,15 @@ public class CatzShooter
     private double minRPM;
     private double maxRPM;
 
-    private double mtrVelocityA    = -1.0;
-    private double mtrVelocityB    = -1.0;
+    private double mtrVelocityA = -1.0;
+    private double mtrVelocityB = -1.0;
 
-    private double PID_PA = 0.000;
-    private double PID_I = 0.0;
-    private double PID_D = 0.0;
-    private double PID_F = (1023.0/21660);
-
-    private double PID_PB = 0.000;
+    private double PID_PA = 0.1;
+    private double PID_PB = 0.1;
+    private double PID_I = 0.001;
+    private double PID_D = 0.000;
+    private double PID_F = (1023.0/21660.0);
+    private int PID_INTZONE = 50;
 
     private int PID_IDX_CLOSED_LOOP = 0;
     private int PID_TIMEOUT_MS = 10;
@@ -125,9 +125,6 @@ public class CatzShooter
         shtrMCA.setNeutralMode(NeutralMode.Coast);
         shtrMCB.setNeutralMode(NeutralMode.Coast);
 
-        shtrMCA.configVelocityMeasurementPeriod(VelocityMeasPeriod.Period_20Ms, 30);
-        shtrMCA.configVelocityMeasurementWindow(32, 30);
-
         shtrMCA.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS); //Constants
         shtrMCB.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS);
 
@@ -135,11 +132,13 @@ public class CatzShooter
         shtrMCA.config_kI(0, PID_I);
         shtrMCA.config_kD(0, PID_D);
         shtrMCA.config_kF(0, PID_F);
+        shtrMCA.config_IntegralZone(0, PID_INTZONE);
 
         shtrMCB.config_kP(0, PID_PB);
         shtrMCB.config_kI(0, PID_I);
         shtrMCB.config_kD(0, PID_D);
         shtrMCB.config_kF(0, PID_F);
+        shtrMCB.config_IntegralZone(0, PID_INTZONE);
 
         //limits how long the shooter runs so it doesn't go too long (limiter)
         indexerShootStateCountLimit = (int)Math.round( (INDEXER_SHOOT_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5 ); 
@@ -172,7 +171,12 @@ public class CatzShooter
                 switch (shooterState)
                 {
                     case SHOOTER_STATE_OFF: //when there is no targetRPM (basically when no button is pressed) will be shooter most of the time
-                        shooterRPM = SHOOTER_OFF_RPM;
+                        
+                        shooterRPM -= 100;
+                        if(shooterRPM <= 0)
+                            shooterRPM = SHOOTER_OFF_RPM;
+
+                        setShooterRPM(shooterRPM);
 
                         if(targetRPM > 0.0)
                         {
@@ -194,10 +198,10 @@ public class CatzShooter
 
                     break;
 
-                    case SHOOTER_WAIT_FOR_STEADY_STATE: // making bang bang work. adds up RPM (prerequisite for bang bang, checks average of )
+                    case SHOOTER_WAIT_FOR_STEADY_STATE: // checks if the rpm is within the threshold for n numbers of times consecutively
                         shooterTraceID = 20;
 
-                        if(mtrVelocityB > minRPM && mtrVelocityB < maxRPM)
+                        if(mtrVelocityA > minRPM && mtrVelocityA < maxRPM)
                         {
                             shooterTraceID = 21;
                             shtrWaitStateCounter ++;
@@ -249,7 +253,7 @@ public class CatzShooter
                         shooterOff();
                     break;
                 }        
-                if(shooterTraceID>0)
+                if(shooterTraceID > 0 && shooterState != SHOOTER_STATE_OFF)
                     System.out.println(shooterTraceID + " : " + shootTime + " : " + shooterRPM + " : " + mtrVelocityA + " : " + mtrVelocityB);
                 Timer.delay(SHOOTER_THREAD_PERIOD);
 
@@ -286,14 +290,14 @@ public class CatzShooter
         shooterIsReady = false;
 	    shooterIsDone  = true;
         shooterState   = SHOOTER_STATE_OFF;
-        shooterRPM   = SHOOTER_OFF_RPM;
-        setShooterRPM(shooterRPM);
+        //shooterRPM   = SHOOTER_OFF_RPM;
+        //setShooterRPM(shooterRPM);
         //Robot.indexer.setShooterIsRunning(false);
         Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0);
     
     }
 
     public double getRPM(){
-        return mtrVelocityB;
+        return mtrVelocityA;
     }
 }

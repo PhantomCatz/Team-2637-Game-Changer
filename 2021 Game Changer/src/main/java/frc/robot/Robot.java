@@ -80,8 +80,7 @@ public class Robot extends TimedRobot
 
   public void robotPeriodic() 
   {
-    //SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getRPM());
-    //SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
+    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getRPM());
   }
 
   /**
