@@ -345,10 +345,15 @@ public class CatzAutonomous
 		currentError  = targetAngle   - currentAngle;
 
 		targetAngleAbs = Math.abs(targetAngle);
+<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
 
 
         logPIDValues();
 		
+=======
+		
+		logPidValues();
+>>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
 
 		pdTimer.reset();
 		pdTimer.start();
@@ -463,8 +468,13 @@ public class CatzAutonomous
 					 * Cmd robot to turn at new power level Note: Power will be positive if turning
 					 * right and negative if turning left
 					 *******************************************************************/
+<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
                     Robot.driveTrain.setTargetPower(Math.min(power,maxpower));
                     logDebugData();
+=======
+					Robot.driveTrain.setTargetPower(Math.min(power, maxPower));
+					logDebugData();
+>>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
 					printDebugData();
 					Timer.delay(loopDelay);
 				}
@@ -600,6 +610,36 @@ public class CatzAutonomous
     
     /***************************************************************************
     *
+<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
+=======
+    * logDebugData()
+    * 
+    ***************************************************************************/
+    public void logDebugData()
+    {
+        CatzLog data;
+        functionTimer.reset();
+        functionTimer.start();
+        data = new CatzLog(functionTimer.get(), deltaT, 
+        currentAngle, currentError, deltaError, derivative, power, -999.0, -999.0, -999.0, -999.0,
+        -999.0, -999.0, -999.0, -999.0, -999.0);
+        Robot.dataCollection.logData.add(data);
+    }
+    /***************************************************************************
+    *
+    * logPIDValues()
+    * 
+    ***************************************************************************/
+    public void logPIDValues()
+    {
+    	CatzLog data;
+	data = new CatzLog(pidTurnkP, pidTurnkD, loopDelay, PID_TURN_FILTER_CONSTANT, -999.0, -999.0,
+	-999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0);
+	Robot.dataCollection.logData.add(data);   
+    }
+    /***************************************************************************
+    *
+>>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
     * Access Methods
     * 
     ***************************************************************************/
@@ -652,6 +692,7 @@ public class CatzAutonomous
         Robot.dataCollection.logData.add(data);
     }
 
+<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
     /*public void driveStraightLogConfig()
     {
         System.out.println("T0: " + Robot.driveTrain.PID_P + "," 
@@ -666,3 +707,6 @@ public class CatzAutonomous
         
     }*/
 }
+=======
+}
+>>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
