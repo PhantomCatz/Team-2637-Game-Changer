@@ -36,10 +36,6 @@ public class Robot extends TimedRobot
   private final int XBOX_DRV_PORT = 0;
   private final int XBOX_AUX_PORT = 1;
 
-
-  public final double ELE_POWER = 0.5;
-  public final double ELE_FACTOR = 1.3;
-
  
 
   private final int DPAD_UP = 0;
@@ -59,13 +55,8 @@ public class Robot extends TimedRobot
     xboxDrv = new XboxController(XBOX_DRV_PORT);
     xboxAux = new XboxController(XBOX_AUX_PORT);
 
-    shooter = new CatzShooter();
     elevator = new CatzElevator();
-
-    //MA = new WPI_TalonFX(10);
-    //MB = new WPI_TalonFX(11);
-    
-
+    shooter = new CatzShooter();
   }
 
   /**
@@ -135,7 +126,7 @@ public class Robot extends TimedRobot
     }
     else if(xboxAux.getPOV() == DPAD_LT)
     {
-    shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
     }
     else if(xboxAux.getPOV() == DPAD_DN)
     {
@@ -152,28 +143,12 @@ public class Robot extends TimedRobot
     }  
     
     //-----------------------Elevator-----------------------
-
-    if(xboxAux.getAButton() == true)
-    {
-      elevator.runElevatorA(ELE_POWER);
-      elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
-    }
-    else
-    {
-      elevator.runElevatorA(0);
-      elevator.runElevatorB(0);
-
-    }
     /*
-    if(xboxAux.getYButton())
-    {
-      MA.set(-1);
-      MB.set(1);
-    } else if(xboxAux.getXButton())
-    {
-      MA.set(0);
-      MB.set(0);
-    } */
+    if(xboxAux.getAButton()){
+      elevator.runElevator();
+    }else{
+      elevator.stopElevator();
+    }*/
   }
 
   /**

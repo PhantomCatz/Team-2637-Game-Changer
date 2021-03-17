@@ -53,7 +53,7 @@ public class CatzShooter
     final double SHOOTER_THREAD_PERIOD           = 0.040;
     final long   SHOOTER_THREAD_PERIOD_MS        = 40;
     final double SHOOTER_RAMP_TIMEOUT_SEC        = 4.000; 
-    final double INDEXER_SHOOT_TIME_SEC          = 1.60;
+    final double INDEXER_SHOOT_TIME_SEC          = 3.00;
     final double SHOOTER_AVG_VEL_SAMPLE_TIME_SEC = 0.100;
 
     public double targetRPM          = 0.0;
@@ -96,10 +96,9 @@ public class CatzShooter
 
     private double PID_PA = 0.1;
     private double PID_PB = 0.1;
-    private double PID_I = 0.001;
-    private double PID_D = 0.000;
+    private double PID_I = 0.0;
+    private double PID_D = 0.0;
     private double PID_F = (1023.0/21660.0);
-    private int PID_INTZONE = 50;
 
     private int PID_IDX_CLOSED_LOOP = 0;
     private int PID_TIMEOUT_MS = 10;
@@ -132,13 +131,11 @@ public class CatzShooter
         shtrMCA.config_kI(0, PID_I);
         shtrMCA.config_kD(0, PID_D);
         shtrMCA.config_kF(0, PID_F);
-        shtrMCA.config_IntegralZone(0, PID_INTZONE);
 
         shtrMCB.config_kP(0, PID_PB);
         shtrMCB.config_kI(0, PID_I);
         shtrMCB.config_kD(0, PID_D);
         shtrMCB.config_kF(0, PID_F);
-        shtrMCB.config_IntegralZone(0, PID_INTZONE);
 
         //limits how long the shooter runs so it doesn't go too long (limiter)
         indexerShootStateCountLimit = (int)Math.round( (INDEXER_SHOOT_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5 ); 
@@ -177,6 +174,7 @@ public class CatzShooter
                             shooterRPM = SHOOTER_OFF_RPM;
 
                         setShooterRPM(shooterRPM);
+                        Robot.elevator.stopElevator();
 
                         if(targetRPM > 0.0)
                         {
@@ -243,8 +241,6 @@ public class CatzShooter
                         {
                             shooterTraceID = 41;
                             shooterOff();
-                            //Robot.indexer.indexerStop(); 
-                            //Robot.indexer.setShooterIsRunning(false);
                         }
                 
                     break;
@@ -280,6 +276,7 @@ public class CatzShooter
         if(shooterState == SHOOTER_STATE_READY)
         {
             indexerShootStateCount = 0;
+            Robot.elevator.runElevator();
             shooterState = SHOOTER_STATE_WAIT_FOR_SHOOT_DONE;
         }
     }
