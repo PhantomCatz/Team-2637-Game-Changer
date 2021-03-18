@@ -35,9 +35,7 @@ public class Robot extends TimedRobot
 
   private final int XBOX_DRV_PORT = 0;
   private final int XBOX_AUX_PORT = 1;
-
  
-
   private final int DPAD_UP = 0;
   private final int DPAD_DN = 180;
   private final int DPAD_LT = 270;
@@ -117,7 +115,6 @@ public class Robot extends TimedRobot
 
   public void teleopPeriodic() 
   {
-    
     //-----------------------shooter-----------------------
     if(xboxAux.getPOV() == DPAD_UP)
     {
@@ -149,6 +146,7 @@ public class Robot extends TimedRobot
     }else{
       elevator.stopElevator();
     }*/
+
   }
 
   /**
