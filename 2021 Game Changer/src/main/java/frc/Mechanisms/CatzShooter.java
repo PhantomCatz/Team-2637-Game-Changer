@@ -1,7 +1,10 @@
 package frc.Mechanisms;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.FeedbackDevice;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
+import com.ctre.phoenix.motorcontrol.VelocityMeasPeriod;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 
 import edu.wpi.first.wpilibj.Timer;
@@ -27,7 +30,7 @@ public class CatzShooter
 
     public static final int SHOOTER_STATE_OFF                 = 0;
     public static final int SHOOTER_STATE_RAMPING             = 1;
-    public static final int SHOOTER_STATE_SET_SPEED           = 2;
+    public static final int SHOOTER_WAIT_FOR_STEADY_STATE           = 2;
     public static final int SHOOTER_STATE_READY               = 3;
     public static final int SHOOTER_STATE_START_SHOOTING      = 4;
     public static final int SHOOTER_STATE_WAIT_FOR_SHOOT_DONE = 5;
@@ -37,28 +40,35 @@ public class CatzShooter
     public final double SHOOTER_TARGET_RPM_MD    = 4000;//(5000.0 - SHOOTER_RPM_START_OFFSET);
     public final double SHOOTER_TARGET_RPM_HI    = 4500;//(6000.0 - SHOOTER_RPM_START_OFFSET);
 
-    final double SHOOTER_BANG_BANG_MAX_RPM_OFFSET = 10.0; 
-    final double SHOOTER_BANG_BANG_MIN_RPM_OFFSET = 10.0;
+    final double SHOOTER_MAX_RPM_OFFSET = 50.0; 
+    final double SHOOTER_MIN_RPM_OFFSET = 50.0;
 
-    final double SHOOTER_RAMP_RPM_OFFSET = 200.0;
+    final double SHOOTER_RAMP_RPM_OFFSET = 1000.0;
 
-    final double SHOOTER_OFF_POWER   =  0.0;
-    final double SHOOTER_RAMP_POWER  = -1.0;
-    final double SHOOTER_SHOOT_POWER = -1.0;
+    final double SHOOTER_OFF_RPM   =  0.0;
+    final double SHOOTER_SHOOT_POWER = 1.0;
 
     final int NUM_OF_DATA_SAMPLES_TO_AVERAGE = 5;
 
     final double SHOOTER_THREAD_PERIOD           = 0.040;
     final long   SHOOTER_THREAD_PERIOD_MS        = 40;
-    final double SHOOTER_RAMP_TIMEOUT_SEC        = 4.000;  //TBD-TEST put back to 4.0
-    final double INDEXER_SHOOT_TIME_SEC          = 1.60;
+    final double SHOOTER_RAMP_TIMEOUT_SEC        = 4.000; 
+    final double INDEXER_SHOOT_TIME_SEC          = 3.00;
     final double SHOOTER_AVG_VEL_SAMPLE_TIME_SEC = 0.100;
 
     public double targetRPM          = 0.0;
     public double targetRPMThreshold = 0.0;
-    public double shooterPower       = 0.0;
+    public double shooterRPM       = 0.0;
     public double minPower           = 0.0;
     public double maxPower           = 0.0;
+    public double nomPower           = 0.0;
+
+    public final double kP = 0.0001;
+
+    public static double avgVelocity = 0.0;
+
+    public double lastSamplePeriod = 0.0;
+    public double lastEncCounts = 0.0;
 
     public static int shooterState = SHOOTER_STATE_OFF;
 
@@ -71,16 +81,37 @@ public class CatzShooter
 
     private boolean shooterIsReady = false;
     public  boolean shooterIsDone  = true;
-    double avgVelocity             = 0.0;
 
     private Thread shooterThread;
 
     public boolean inAutonomous;
 
-    public Timer shooterTimer;
+    public Timer shootTimer;
+
+    private double minRPM;
+    private double maxRPM;
+
+    private double mtrVelocityA = -1.0;
+    private double mtrVelocityB = -1.0;
+
+    private double PID_PA = 0.1;
+    private double PID_PB = 0.1;
+    private double PID_I = 0.0;
+    private double PID_D = 0.0;
+    private double PID_F = (1023.0/21660.0);
+
+    private int PID_IDX_CLOSED_LOOP = 0;
+    private int PID_TIMEOUT_MS = 10;
+
+    private int shtrWaitStateCounter = 0;
+    private int shtrWaitStateCounterMax = 7;
+
+    private int shooterTraceID = -1;
 
     public CatzShooter()
     {
+        shootTimer = new Timer();
+
         //initialize motor controllers
         shtrMCA = new WPI_TalonFX(SHTR_MC_ID_A);
         shtrMCB = new WPI_TalonFX(SHTR_MC_ID_B);
@@ -93,6 +124,19 @@ public class CatzShooter
         shtrMCA.setNeutralMode(NeutralMode.Coast);
         shtrMCB.setNeutralMode(NeutralMode.Coast);
 
+        shtrMCA.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS); //Constants
+        shtrMCB.configSelectedFeedbackSensor(FeedbackDevice.IntegratedSensor, PID_IDX_CLOSED_LOOP, PID_TIMEOUT_MS);
+
+        shtrMCA.config_kP(0, PID_PA);
+        shtrMCA.config_kI(0, PID_I);
+        shtrMCA.config_kD(0, PID_D);
+        shtrMCA.config_kF(0, PID_F);
+
+        shtrMCB.config_kP(0, PID_PB);
+        shtrMCB.config_kI(0, PID_I);
+        shtrMCB.config_kD(0, PID_D);
+        shtrMCB.config_kF(0, PID_F);
+
         //limits how long the shooter runs so it doesn't go too long (limiter)
         indexerShootStateCountLimit = (int)Math.round( (INDEXER_SHOOT_TIME_SEC / SHOOTER_THREAD_PERIOD) + 0.5 ); 
         //equation which limits how long the ramp up goes (don't want it to go too much/fast)
@@ -102,6 +146,7 @@ public class CatzShooter
         
         setShooterVelocity();
         shooterOff();
+
     }
 
     public void setShooterVelocity() //will make shooter run and etc
@@ -109,154 +154,93 @@ public class CatzShooter
 
         shooterThread = new Thread(() -> //start of thread
         {
-            double flywheelShaftVelocity    = -1.0;
-            double minRPM                   = 0.0;
-            double maxRPM                   = 0.0;
-            double shootTime                = 0.0;
-            double[] velocityData           = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-            double sumOfVelocityData        = 0.0;
-            int velocityDataIndex           = 0;
-            boolean readyToCalculateAverage = false;
-            boolean rumbleSet               = false;
+
+            shootTimer.start();
+            double shootTime       = 0.0;
+            boolean rumbleSet      = false;
 
             while(true)
             {
-                shootTime = shooterTimer.get();
-                flywheelShaftVelocity = getFlywheelShaftVelocity();
+                shootTime = shootTimer.get();
+                mtrVelocityA = (Math.abs((double) shtrMCA.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM));
+                mtrVelocityB = (Math.abs((double) shtrMCB.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM));
 
                 switch (shooterState)
                 {
                     case SHOOTER_STATE_OFF: //when there is no targetRPM (basically when no button is pressed) will be shooter most of the time
-                        shooterPower = SHOOTER_OFF_POWER;
+                        
+                        shooterRPM -= 100;
+                        if(shooterRPM <= 0)
+                            shooterRPM = SHOOTER_OFF_RPM;
+
+                        setShooterRPM(shooterRPM);
+                        Robot.elevator.stopElevator();
 
                         if(targetRPM > 0.0)
                         {
                             indexerShootStateCount  = 0;
                             rampStateCount          = 0;
-                            samplingVelocityCount   = 0;
-                            sumOfVelocityData       = 0.0;
-                            velocityDataIndex       = 0;
-                            readyToCalculateAverage = false;
-                            shooterState            = SHOOTER_STATE_RAMPING;
-                            targetRPMThreshold      = targetRPM - SHOOTER_RAMP_RPM_OFFSET;
-                            minRPM                  = targetRPM - SHOOTER_BANG_BANG_MIN_RPM_OFFSET;
-                            maxRPM                  = targetRPM + SHOOTER_BANG_BANG_MAX_RPM_OFFSET;
-                            shooterPower            = SHOOTER_RAMP_POWER;
+                            shooterState            = SHOOTER_WAIT_FOR_STEADY_STATE;
+                            minRPM                  = targetRPM - SHOOTER_MIN_RPM_OFFSET;
+                            maxRPM                  = targetRPM + SHOOTER_MAX_RPM_OFFSET;
+                            shtrWaitStateCounter    = 0;
                             rumbleSet               = false;
-            			    shooterIsDone           = false;
+                            shooterIsDone           = false;
+                            
+                            shooterRPM = targetRPM;
 
-                            getBangBangPower();
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
+                            setShooterRPM(targetRPM);
 
-                            for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                            {
-                                velocityData[i] = 0.0;
-                            }
-
-                            System.out.println("T1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
+                            shooterTraceID = 1;
                         }
 
                     break;
 
-                    case SHOOTER_STATE_RAMPING: // once targetRPM is given, velocity ramps up as fast as possible to reach targetRPM
-                        //Robot.indexer.setShooterRamping(true);
-                        if(flywheelShaftVelocity > targetRPMThreshold)
+                    case SHOOTER_WAIT_FOR_STEADY_STATE: // checks if the rpm is within the threshold for n numbers of times consecutively
+                        shooterTraceID = 20;
+
+                        if(mtrVelocityA > minRPM && mtrVelocityA < maxRPM)
                         {
-                            shooterState = SHOOTER_STATE_SET_SPEED;
-                            shooterPower = maxPower;
-                            shtrMCA.set(shooterPower);
-                            shtrMCB.set(-shooterPower);
-                            System.out.println("T2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower );
-
-                        }
-                        rampStateCount++;
-                        if(rampStateCount > rampStateCountLimit)
-                        {
-                            shooterOff();
-                        }
-                        break;
-
-                    case SHOOTER_STATE_SET_SPEED: // making bang bang work. adds up RPM (prerequisite for bang bang, checks average of )
-                        samplingVelocityCount++;
-                        if(samplingVelocityCount > samplingVelocityCountLimit)
-                        {
-                            samplingVelocityCount = 0;
-                            velocityData[velocityDataIndex++ ] = flywheelShaftVelocity;
-                            System.out.print("S");
-                            //Robot.indexer.setShooterRamping(false);
-                            if(velocityDataIndex == NUM_OF_DATA_SAMPLES_TO_AVERAGE)
+                            shooterTraceID = 21;
+                            shtrWaitStateCounter ++;
+                            if(shtrWaitStateCounter >= shtrWaitStateCounterMax)
                             {
-                                velocityDataIndex = 0;
-                                readyToCalculateAverage = true;
-                            }
-
-                            if(readyToCalculateAverage == true)
-                            {
-                                
-                                for(int i = 0; i < NUM_OF_DATA_SAMPLES_TO_AVERAGE; i++ )
-                                {  
-                                    sumOfVelocityData = sumOfVelocityData + velocityData[i];
-                                }
-                        
-                                avgVelocity = sumOfVelocityData / NUM_OF_DATA_SAMPLES_TO_AVERAGE;
-                                sumOfVelocityData = 0.0;
-                                System.out.println("AD: " + avgVelocity);
-                            }
-
-                            if(avgVelocity > minRPM && avgVelocity < maxRPM)
-                            {
+                                shooterTraceID = 22;
                                 shooterState = SHOOTER_STATE_READY;
                             }
+                        }else{
+                            shooterTraceID = 23;
+                            shtrWaitStateCounter = 0;
                         }
-
-                        bangBang(minRPM, maxRPM, flywheelShaftVelocity);
-
-                        System.out.println("T3: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
-
                     break;
 
                     case SHOOTER_STATE_READY:// makes the controller vibrate so that aux driver knows to shoot
+                        shooterTraceID = 30;
                         shooterIsReady = true;
-                        System.out.println("SSR");
-                        bangBang(minRPM, maxRPM, flywheelShaftVelocity);   
 
                         if(inAutonomous == true)
                         { 
+                            shooterTraceID = 31;
                         }
                         else 
                         {
+                            shooterTraceID = 32;
                             if(rumbleSet == false)
                             {
+                                shooterTraceID = 33;
                                 Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0.5);
                                 rumbleSet = true;
                             } 
                         }
                     break;
 
-                    case SHOOTER_STATE_START_SHOOTING: 
-                        shooterPower = SHOOTER_SHOOT_POWER;
-                        shtrMCA.set(shooterPower);   
-                        shtrMCB.set(-shooterPower); 
-                        System.out.println("TS1: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
-
-                        if(flywheelShaftVelocity > targetRPM + SHOOTER_RPM_START_OFFSET)
-                        {
-                            //Robot.indexer.indexerStart(); 
-                            shooterState = SHOOTER_STATE_WAIT_FOR_SHOOT_DONE;
-                            System.out.println("TS2: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
-                        }
-                    break;
-
                     case SHOOTER_STATE_WAIT_FOR_SHOOT_DONE: //will count for a certain amount of time until it switches the shooter off and sets state to OFF
-                        System.out.println("TS3: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
+                        shooterTraceID = 40;
                         indexerShootStateCount++;
                         if(indexerShootStateCount > indexerShootStateCountLimit)
                         {
+                            shooterTraceID = 41;
                             shooterOff();
-                            //Robot.indexer.indexerStop(); 
-                            //Robot.indexer.setShooterIsRunning(false);
-                            System.out.println("TS4: " + shootTime + " : " + flywheelShaftVelocity + " Power: " + shooterPower);
                         }
                 
                     break;
@@ -264,42 +248,22 @@ public class CatzShooter
                     default:  //default code when there is nothing going on 
                         shooterOff();
                     break;
-            }        
-            Timer.delay(SHOOTER_THREAD_PERIOD);
-        }
-    }); //end of thread
+                }        
+                if(shooterTraceID > 0 && shooterState != SHOOTER_STATE_OFF)
+                    System.out.println(shooterTraceID + " : " + shootTime + " : " + shooterRPM + " : " + mtrVelocityA + " : " + mtrVelocityB);
+                Timer.delay(SHOOTER_THREAD_PERIOD);
+
+            }
+        }); //end of thread
         shooterThread.start();
     }
 
-    public void getBangBangPower() //determines max and min power based on the velocity chosen
-    {                              //10000) + 0.04
-       double power =  ((targetRPM) / 6410.0) + 0.015; //+0.05    
-       minPower = -(power - 0.01);
-       maxPower = -(power + 0.01);
-    }
-
-    public void bangBang(double minRPM, double maxRPM, double flywheelShaftVelocity) // bangbang method
+    public void setShooterRPM(double rpm)
     {
-        if (flywheelShaftVelocity > maxRPM)
-        {
-            shooterPower = minPower; 
-        }
-        else if(flywheelShaftVelocity < minRPM) 
-        {
-            shooterPower = maxPower;
-        }
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
-    }
-
-    public double getFlywheelShaftPosition() //encoder counts
-    {
-        return shtrMCA.getSensorCollection().getIntegratedSensorPosition();
-    }
-
-    public double getFlywheelShaftVelocity() //RPM
-    {
-        return (Math.abs((double) shtrMCA.getSensorCollection().getIntegratedSensorVelocity() * CONV_QUAD_VELOCITY_TO_RPM)); 
+        double velocityB = rpm * (2048.0) * (1.0/60.0) * (1.0/10.0);
+        double velocityA = -velocityB;
+        shtrMCA.set(TalonFXControlMode.Velocity, velocityA);
+        shtrMCB.set(TalonFXControlMode.Velocity, velocityB);
     }
 
     public void setTargetRPM(double velocity) // Sets the RPM (determined by the button pressed on controller)
@@ -312,7 +276,8 @@ public class CatzShooter
         if(shooterState == SHOOTER_STATE_READY)
         {
             indexerShootStateCount = 0;
-            shooterState = SHOOTER_STATE_START_SHOOTING;
+            Robot.elevator.runElevator();
+            shooterState = SHOOTER_STATE_WAIT_FOR_SHOOT_DONE;
         }
     }
 
@@ -322,11 +287,14 @@ public class CatzShooter
         shooterIsReady = false;
 	    shooterIsDone  = true;
         shooterState   = SHOOTER_STATE_OFF;
-        shooterPower   = SHOOTER_OFF_POWER;
-        shtrMCA.set(shooterPower);
-        shtrMCB.set(-shooterPower);
+        //shooterRPM   = SHOOTER_OFF_RPM;
+        //setShooterRPM(shooterRPM);
         //Robot.indexer.setShooterIsRunning(false);
         Robot.xboxAux.setRumble(RumbleType.kLeftRumble, 0);
     
+    }
+
+    public double getRPM(){
+        return mtrVelocityA;
     }
 }

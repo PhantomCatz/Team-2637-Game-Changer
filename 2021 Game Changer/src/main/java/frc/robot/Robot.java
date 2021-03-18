@@ -35,13 +35,7 @@ public class Robot extends TimedRobot
 
   private final int XBOX_DRV_PORT = 0;
   private final int XBOX_AUX_PORT = 1;
-
-
-  public final double ELE_POWER = 0.5;
-  public final double ELE_FACTOR = 1.3;
-
  
-
   private final int DPAD_UP = 0;
   private final int DPAD_DN = 180;
   private final int DPAD_LT = 270;
@@ -51,25 +45,16 @@ public class Robot extends TimedRobot
    * used for any initialization code.
    */
 
+   //WPI_TalonFX MA, MB;
+
   @Override
   public void robotInit() 
   {
     xboxDrv = new XboxController(XBOX_DRV_PORT);
     xboxAux = new XboxController(XBOX_AUX_PORT);
 
-    shooter = new CatzShooter();
     elevator = new CatzElevator();
-  
-    
-
-    xboxAux = new XboxController(1);
     shooter = new CatzShooter();
-
-
-  elevator = new CatzElevator();
-  
-    
-
   }
 
   /**
@@ -84,8 +69,7 @@ public class Robot extends TimedRobot
 
   public void robotPeriodic() 
   {
-    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getFlywheelShaftVelocity());
-    SmartDashboard.putNumber("shooterState", CatzShooter.shooterState);
+    SmartDashboard.putNumber("shaft velocity (RPM)", shooter.getRPM());
   }
 
   /**
@@ -131,43 +115,38 @@ public class Robot extends TimedRobot
 
   public void teleopPeriodic() 
   {
-      //-----------------------shooter-----------------------
-      if(xboxAux.getPOV() == DPAD_UP)
-      {
-        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
-        //shooter.setTargetVelocity(.25);
-      }
-      else if(xboxAux.getPOV() == DPAD_LT)
-      {
+    //-----------------------shooter-----------------------
+    if(xboxAux.getPOV() == DPAD_UP)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_LO);
+      //shooter.setTargetVelocity(.25);
+    }
+    else if(xboxAux.getPOV() == DPAD_LT)
+    {
       shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_MD);
-      }
-      else if(xboxAux.getPOV() == DPAD_DN)
-      {
-        shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
-      }
-      else if(xboxAux.getBButton())
-      {
-        //indexer.setShooterIsRunning(true);
-        shooter.shoot();
-      } 
-      else if(xboxAux.getStartButton())
-      {
-        shooter.shooterOff();
-      }  
-
+    }
+    else if(xboxAux.getPOV() == DPAD_DN)
+    {
+      shooter.setTargetRPM(shooter.SHOOTER_TARGET_RPM_HI);
+    }
+    else if(xboxAux.getBButton())
+    {
+      //indexer.setShooterIsRunning(true);
+      shooter.shoot();
+    } 
+    else if(xboxAux.getStartButton())
+    {
+      shooter.shooterOff();
+    }  
+    
     //-----------------------Elevator-----------------------
+    /*
+    if(xboxAux.getAButton()){
+      elevator.runElevator();
+    }else{
+      elevator.stopElevator();
+    }*/
 
-      if(xboxDrv.getAButton() == true)
-      {
-        elevator.runElevatorA(ELE_POWER);
-        elevator.runElevatorB(ELE_POWER * ELE_FACTOR);
-      }
-      else
-      {
-        elevator.runElevatorA(0);
-        elevator.runElevatorB(0);
-
-      }
   }
 
   /**
