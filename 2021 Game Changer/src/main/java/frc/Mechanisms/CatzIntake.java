@@ -62,7 +62,7 @@ public class CatzIntake
     private double targetIntakeStowPosition;
     private double currentIntakeStowPower;
     private int intakeCheckHardstopCount = 0;
-    
+
     private final int INTAKE_MAX_HARD_STOP_COUNT          = 3;
     private final double INTAKE_STOW_HOLD_THRESHOLD       = 5.0;
     private final double INTAKE_CHECK_HARD_STOP_THRESHOLD = 5.0;
@@ -217,7 +217,7 @@ public class CatzIntake
     }
 
     public double getIntakeDeployPositionDegrees(){
-        return Math.abs(intakeDeployMC.getEncoder().getPosition() * intakeStowMotorGearRatio * 360.0);
+        return Math.abs(intakeDeployMC.getEncoder(EncoderType.kHallSensor, 42).getPosition() * intakeStowMotorGearRatio * 360.0);
     }
 
     public double clamp(double value, double min, double max){
