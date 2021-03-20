@@ -60,6 +60,7 @@ public class CatzIntake
     private double currentIntakeStowPosition;
     private double lastIntakeStowPosition;
     private double targetIntakeStowPosition;
+    private double currentIntakeStowPower;
     private int intakeCheckHardstopCount = 0;
     private final int INTAKE_MAX_HARD_STOP_COUNT = 3;
     private final double INTAKE_STOW_HOLD_THRESHOLD = 5.0;
@@ -158,6 +159,7 @@ public class CatzIntake
                             if(intakeCheckHardstopCount >= INTAKE_MAX_HARD_STOP_COUNT)
                             {
                                 targetIntakeStowPosition = currentIntakeStowPosition;
+                                currentIntakeStowPower = INTAKE_MOTOR_POWER_END_STOW;
                                 intakeMode = INTAKE_MODE_STOW_HOLD;
                             }
                         }
@@ -170,7 +172,8 @@ public class CatzIntake
                         double error = currentIntakeStowPosition - targetIntakeStowPosition;
                         
                         if(Math.abs(error) >= INTAKE_STOW_HOLD_THRESHOLD){
-                            double power = clamp(error * intakeStowHoldkP, -1.0, INTAKE_MOTOR_POWER_END_STOW);
+                            double power = clamp(currentIntakeStowPower + (error * intakeStowHoldkP), -1.0, INTAKE_MOTOR_POWER_END_STOW);
+                            currentIntakeStowPower = power;
                             intakeDeployMC.set(power);
                         }else{
                             intakeDeployMC.set(0.0);
