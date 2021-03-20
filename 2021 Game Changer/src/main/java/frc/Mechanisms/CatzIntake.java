@@ -62,8 +62,9 @@ public class CatzIntake
     private double targetIntakeStowPosition;
     private double currentIntakeStowPower;
     private int intakeCheckHardstopCount = 0;
-    private final int INTAKE_MAX_HARD_STOP_COUNT = 3;
-    private final double INTAKE_STOW_HOLD_THRESHOLD = 5.0;
+    
+    private final int INTAKE_MAX_HARD_STOP_COUNT          = 3;
+    private final double INTAKE_STOW_HOLD_THRESHOLD       = 5.0;
     private final double INTAKE_CHECK_HARD_STOP_THRESHOLD = 5.0;
 
     private double intakeStowHoldkP = 0.001;
