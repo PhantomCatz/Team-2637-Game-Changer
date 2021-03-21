@@ -43,6 +43,8 @@ public class CatzAutonomous
     public Timer shooterTimer;
     public Timer driveStraightTimer;
 
+    private final double DRIVE_STRAIGHT_LOOP_PERIOD = 0.03;
+
     public final double WAIT_TIME_THRESHOLD = 5.0;
     public double totalTime = 0;
 
@@ -70,17 +72,16 @@ public class CatzAutonomous
     public final int DRIVE_STRAIGHT_TIMEOUT = 30;
     public boolean inDriveStraight = false;
 
-    public final int MIN_VELOCITY_LIMIT = 3000;
-    public final double VELOCITY_DECREASE_RATE = 0.79; // make this smallerorig 0.92
+    public final double FPS_TO_CNTS_PER_100MS  = (12.0/1.0) * 1.0/Robot.driveTrain.encCountsToInches*(1.0/10.0);
+    public final double MIN_VELOCITY_LIMIT     = (5.0 * FPS_TO_CNTS_PER_100MS);
+    public final double VELOCITY_DECREASE_RATE = 1.0;
 
 
     public double targetVelocity = 0.0;
 
     public  double maxSpeedFPS = 0.0;
 
-    public final double FPS_TO_CNTS_PER_100MS = (12.0/1.0) * 1.0/Robot.driveTrain.encCountsToInches*(1.0/10.0);
-
-    	/***************************************************************************
+    /***************************************************************************
 	 * PID Turn Constants
 	 ***************************************************************************/
     static public double PID_TURN_THRESHOLD   = 0.5;
@@ -221,6 +222,12 @@ public class CatzAutonomous
     }
     
 
+
+    /***************************************************************************
+    *
+    *   monitorEncoderPosition 
+    * 
+    ***************************************************************************/
     public boolean monitorEncoderPosition(int initialEncoderCount, double timeoutTime)
     {
         Robot.navx.reset();
@@ -247,14 +254,15 @@ public class CatzAutonomous
 
        while(done == false)
        {
-           System.out.println("NavX:   " + Robot.navx.getAngle());
-            currentEncCountRt = Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);//for left and right
-            currentEncCountLt = Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
+            currentTime = driveStraightTimer.get();
+
+            currentEncCountRt = (double)Robot.driveTrain.drvTrainMtrCtrlRTFrnt.getSelectedSensorPosition(0);//for left and right
+            currentEncCountLt = (double)Robot.driveTrain.drvTrainMtrCtrlLTFrnt.getSelectedSensorPosition(0);
             currentVelocityRt = Robot.driveTrain.getIntegratedEncVelocity("RT"); //for left and right
             currentVelocityLt = Robot.driveTrain.getIntegratedEncVelocity("LT");
 
             deltaCounts = currentEncCountRt - initialEncoderCount;
-            distanceMoved = Math.abs((double) (deltaCounts * Robot.driveTrain.encCountsToInches) );
+            distanceMoved = Math.abs( (deltaCounts * Robot.driveTrain.encCountsToInches) );
             
             distanceRemaining = distanceGoal - distanceMoved; //distance in inches (error)
 
@@ -270,17 +278,15 @@ public class CatzAutonomous
             else 
             {
                 if (distanceRemaining < decelDist)
-                {
-
-                    
+                {   
+                    Robot.intake.intakeRollerIn();
                     if(targetVelocity > MIN_VELOCITY_LIMIT)
                     { 
                         targetVelocity = targetVelocity * VELOCITY_DECREASE_RATE;
                         Robot.driveTrain.setTargetVelocity(targetVelocity);
                     }    
-                    
                 }
-                currentTime = driveStraightTimer.get();
+               
                 if(currentTime > timeoutTime)
                 {
                     targetVelocity = 0.0;
@@ -289,6 +295,7 @@ public class CatzAutonomous
                     done = true;
                 }
             }
+            
             if (uniqueFirstLogData == true)
             {
                 data = new CatzLog(distanceGoal, maxSpeedFPS, 
@@ -310,19 +317,24 @@ public class CatzAutonomous
                                                                 -999.0, -999.0, -999.0, -999.0,-999.0, -999.0);
                 
             }
-            Robot.dataCollection.logData.add(data);
-            Robot.dataCollectionTimer.delay(0.03);
-               
- 
+            //Robot.dataCollection.logData.add(data);
+            
+            Timer.delay(DRIVE_STRAIGHT_LOOP_PERIOD); 
        }
         
-
+        Robot.intake.intakeRollerOff();
+        
         return completed;
-
     
     }
 
 
+
+    /***************************************************************************
+    *
+    *   PIDturn
+    * 
+    ***************************************************************************/
     public void PIDturn(double degreesToTurn, double timeoutSeconds, double maxpower) {
 		Robot.navx.reset();
 		Timer.delay(NAVX_RESET_WAIT_TIME);
@@ -345,17 +357,8 @@ public class CatzAutonomous
 		currentError  = targetAngle   - currentAngle;
 
 		targetAngleAbs = Math.abs(targetAngle);
-<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
 
-
-        logPIDValues();
-		
-=======
-		
-		logPidValues();
->>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
-
-		pdTimer.reset();
+        pdTimer.reset();
 		pdTimer.start();
 		while (done == false) {
 			currentAngle = Robot.navx.getAngle();
@@ -468,13 +471,7 @@ public class CatzAutonomous
 					 * Cmd robot to turn at new power level Note: Power will be positive if turning
 					 * right and negative if turning left
 					 *******************************************************************/
-<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
                     Robot.driveTrain.setTargetPower(Math.min(power,maxpower));
-                    logDebugData();
-=======
-					Robot.driveTrain.setTargetPower(Math.min(power, maxPower));
-					logDebugData();
->>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
 					printDebugData();
 					Timer.delay(loopDelay);
 				}
@@ -607,106 +604,4 @@ public class CatzAutonomous
                     currentAngle, currentError, deltaError, derivative, power);
         }
     }
-    
-    /***************************************************************************
-    *
-<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
-=======
-    * logDebugData()
-    * 
-    ***************************************************************************/
-    public void logDebugData()
-    {
-        CatzLog data;
-        functionTimer.reset();
-        functionTimer.start();
-        data = new CatzLog(functionTimer.get(), deltaT, 
-        currentAngle, currentError, deltaError, derivative, power, -999.0, -999.0, -999.0, -999.0,
-        -999.0, -999.0, -999.0, -999.0, -999.0);
-        Robot.dataCollection.logData.add(data);
-    }
-    /***************************************************************************
-    *
-    * logPIDValues()
-    * 
-    ***************************************************************************/
-    public void logPIDValues()
-    {
-    	CatzLog data;
-	data = new CatzLog(pidTurnkP, pidTurnkD, loopDelay, PID_TURN_FILTER_CONSTANT, -999.0, -999.0,
-	-999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0);
-	Robot.dataCollection.logData.add(data);   
-    }
-    /***************************************************************************
-    *
->>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java
-    * Access Methods
-    * 
-    ***************************************************************************/
-    public static double getCurrTime()
-    {
-        return functionTimer.get();
-    }
-
-    public static double getDeltaT()
-    {
-        return pdTimer.get();
-    }
-
-    public static double getCurrAngle()
-    {
-        return Robot.navx.getAngle();
-    }
-
-    public static  double getCurrError()
-    {
-        double CurrError = targetAngle - currentAngle;
-        return CurrError;
-    }
- 
-    public static double getDeltaError()
-    {
-        double dError = currentError - previousError;
-        return dError;
-    }
-
-    public static double getCurrPower()
-    {
-        return power;
-    }
-
-    public static void logDebugData()
-    {
-        CatzLog data;
-        data = new CatzLog(functionTimer.get(), deltaT, 
-        currentAngle, currentError, deltaError, derivative, power, -999.0, -999.0, -999.0, -999.0,
-        -999.0, -999.0, -999.0, -999.0, -999.0);
-        Robot.dataCollection.logData.add(data);
-    }
-
-    public void logPIDValues()
-    {
-        CatzLog data; 
-        data = new CatzLog(pidTurnkP, pidTurnkD, loopDelay, PID_TURN_FILTER_CONSTANT,-999.0, -999.0, -999.0, -999.0,
-        -999.0, -999.0, -999.0, -999.0, -999.0,-999.0, -999.0,-999.0);
-        Robot.dataCollection.logData.add(data);
-    }
-
-<<<<<<< HEAD:Clean Drivetrain-Imported/src/main/java/frc/Autonomous/CatzAutonomous.java
-    /*public void driveStraightLogConfig()
-    {
-        System.out.println("T0: " + Robot.driveTrain.PID_P + "," 
-                                  + Robot.driveTrain.PID_I + "," 
-                                  + Robot.driveTrain.PID_D + "," 
-                                  + Robot.driveTrain.PID_F + ","  
-                                  + Robot.driveTrain.encCountsToInches + "," 
-                                  + Robot.driveTrain.currentDrvTrainGear + "," 
-                                  + distanceGoal + ","
-                                  + STOP_THRESHOLD_DIST
-        );
-        
-    }*/
 }
-=======
-}
->>>>>>> ecded8ba11b6f427dd029eab2f1058a42c7ffa53:src/main/java/frc/Autonomous/CatzAutonomous.java

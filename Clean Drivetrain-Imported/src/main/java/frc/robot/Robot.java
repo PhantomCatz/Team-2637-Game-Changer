@@ -28,7 +28,7 @@ import frc.Autonomous.CatzAutonomous;
 
 //import frc.Mechanisms.CatzShooter;
 //import frc.Mechanisms.CatzElevator;
-//import frc.Mechanisms.CatzIntake;
+import frc.Mechanisms.CatzIntake;
 import frc.Mechanisms.CatzDriveTrain;
 
 
@@ -44,7 +44,7 @@ public class Robot extends TimedRobot
 {
   //public static CatzShooter shooter;
   //public static CatzElevator elevator;
-  //public static CatzIntake intake;
+  public static CatzIntake intake;
   public static CatzDriveTrain driveTrain;
 
   public static CatzAutonomous auton;
@@ -90,8 +90,11 @@ public class Robot extends TimedRobot
     xboxAux = new XboxController(XBOX_AUX_PORT);
 
     driveTrain = new CatzDriveTrain();
+    intake = new CatzIntake();
+    auton = new CatzAutonomous();
     /*shooter = new CatzShooter();
     elevator = new CatzElevator();*/
+    dataCollection = new DataCollection();
   
     navx = new AHRS(Port.kMXP, (byte)200);
     navx.reset();
@@ -99,6 +102,7 @@ public class Robot extends TimedRobot
     pdp = new PowerDistributionPanel();
     
     autonomousTimer     = new Timer();
+    dataCollectionTimer = new Timer();
 
     dataCollection.dataCollectionInit(dataArrayList);
     dataCollectionTimer.reset();
@@ -138,7 +142,7 @@ public class Robot extends TimedRobot
   @Override
   public void autonomousInit() 
   {
-
+    auton.driveStraight(120, 14, 100);
   }
 
   /**
@@ -179,7 +183,28 @@ public class Robot extends TimedRobot
     {
       driveTrain.shiftToLowGear();
     }
-  
+    //-------------------------------------------Intake------------------------------------------------------------- 
+    if(xboxDrv.getStickButtonPressed(Hand.kLeft))
+    {
+      intake.deployIntake(); 
+    }
+    else if(xboxDrv.getStickButtonPressed(Hand.kRight))
+    {
+      intake.stowIntake();
+    }
+    
+    if(xboxDrv.getTriggerAxis(Hand.kLeft) > 0.2)
+    {
+      intake.intakeRollerIn();
+    }
+    else if(xboxDrv.getTriggerAxis(Hand.kRight) > 0.2)
+    {
+      intake.intakeRollerOut();
+    }
+    else
+    {
+      intake.intakeRollerOff();
+    }
     /*//-----------------------shooter-----------------------
       if(xboxAux.getPOV() == DPAD_UP)
       {
