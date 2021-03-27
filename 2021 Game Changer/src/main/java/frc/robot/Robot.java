@@ -95,6 +95,8 @@ public class Robot extends TimedRobot
     /*shooter = new CatzShooter();
     elevator = new CatzElevator();*/
     dataCollection = new DataCollection();
+
+    dataArrayList = new ArrayList<CatzLog>();
   
     navx = new AHRS(Port.kMXP, (byte)200);
     navx.reset();
@@ -142,7 +144,9 @@ public class Robot extends TimedRobot
   @Override
   public void autonomousInit() 
   {
-    auton.driveStraight(120, 14, 100);
+    intake.deployIntake();
+    Timer.delay(0.5);
+    auton.driveStraight(120, 100);
   }
 
   /**
@@ -186,11 +190,11 @@ public class Robot extends TimedRobot
     //-------------------------------------------Intake------------------------------------------------------------- 
     if(xboxDrv.getStickButtonPressed(Hand.kLeft))
     {
-      intake.deployIntake(); 
+      intake.intakeDeployMC.set(0.25);
     }
     else if(xboxDrv.getStickButtonPressed(Hand.kRight))
     {
-      intake.stowIntake();
+      intake.intakeDeployMC.set(-0.25);
     }
     
     if(xboxDrv.getTriggerAxis(Hand.kLeft) > 0.2)
