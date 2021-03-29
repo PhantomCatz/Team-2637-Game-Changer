@@ -107,7 +107,10 @@ public class CatzAutonomous
 	final static public double PID_TURN_INTEGRAL_MIN = -1.0;
 
 	final public static double PID_TURN_MIN_POS_POWER = 0.6; // 0.4 is min power to move robot when it is stopped
-	final public static double PID_TURN_MIN_NEG_POWER = -PID_TURN_MIN_POS_POWER;
+    final public static double PID_TURN_MIN_NEG_POWER = -PID_TURN_MIN_POS_POWER;
+    
+    public final double TURN_MIN_VELOCITY_LIMIT_FPS = 5.0;
+    public final double TURN_MIN_VELOCITY_LIMIT_CONVERTED = convertVelocity(TURN_MIN_VELOCITY_LIMIT_FPS);
 
 	
 	/***************************************************************************
@@ -148,7 +151,10 @@ public class CatzAutonomous
 	static boolean tuningMode = false;
 	static boolean debugMode = false;
 
-
+    private static double pidTurnVelocity    = 20000.0;
+    private static double pidTurnVelocityFps = 14.0;
+    private static double pidTurnDecelRate   = 0.98;
+    private static double pidTurnDecelAngle  = 0.0;
 
     public CatzAutonomous()
     {
@@ -328,6 +334,135 @@ public class CatzAutonomous
     
     }
 
+    public void TurnInPlace(double degreesToTurn, double timeoutSeconds) 
+    {
+
+        boolean done      = false;
+        boolean firstTime = true;
+    
+        double  currentTime = 0.0;
+        double  angleRemainingAbs = 999.0;
+    
+        Robot.navx.reset();
+        Timer.delay(NAVX_RESET_WAIT_TIME);
+    
+        Robot.driveTrain.shiftToLowGear();
+    
+    
+        functionTimer = new Timer();
+        functionTimer.reset();
+        functionTimer.start(); 
+    
+        setTurnValues(degreesToTurn);
+    
+        previousError = 0.0;
+        totalError    = 0.0;
+    
+        currentAngle  = Robot.navx.getAngle();
+        targetAngle   = degreesToTurn + currentAngle;
+        currentError  = targetAngle   - currentAngle;
+    
+        targetAngleAbs = Math.abs(targetAngle);
+    
+        logTurnInPlaceConfigValues();
+        
+    
+        /*----------------------------------------------------------------------
+        *  Set Initial Turn Velocity
+        ----------------------------------------------------------------------*/
+        targetVelocity = convertVelocity(pidTurnVelocity); //cnts/100ms
+        if (targetAngle < 0.0) {
+            targetVelocity = -targetVelocity;
+        }
+        Robot.driveTrain.setTurnInPlaceVelocity(targetVelocity);
+        
+        /*----------------------------------------------------------------------
+        *  Monitor Angle To Determine When to Decelerate and Stop
+        ----------------------------------------------------------------------*/
+        while (done == false) {
+            currentTime  = functionTimer.get();
+            currentAngle = Robot.navx.getAngle();
+    
+            // calculates proportional term
+            currentError = targetAngle - currentAngle;
+    
+            angleRemainingAbs = Math.abs(currentError);
+    
+            if (angleRemainingAbs < PID_TURN_THRESHOLD) {
+                done = true;
+            }
+            else
+            {
+                if (currentTime > timeoutSeconds) {
+                    done = true;
+                }
+                else
+                {
+                    if (angleRemainingAbs < pidTurnDecelAngle) 
+                    {
+                        if(targetVelocity > TURN_MIN_VELOCITY_LIMIT_CONVERTED )
+                        {
+                            targetVelocity = targetVelocity * pidTurnDecelRate;
+                            Robot.driveTrain.setTurnInPlaceVelocity(targetVelocity);
+                        }   
+                    }
+                }
+            }
+    
+            logTurnInPlaceData();
+            Timer.delay(loopDelay);
+    
+        }   //End of while (done == false)
+    
+        /*----------------------------------------------------------------------
+        *  We either hit target angle or have timed out - stop
+        ----------------------------------------------------------------------*/
+        targetVelocity = 0.0;
+        Robot.driveTrain.setTurnInPlaceVelocity(targetVelocity);
+        logTurnInPlaceData();
+    
+    }   //end of TurnInPlace()
+
+    public static void setTurnValues(double degreesToTurn) 
+    {
+    
+        double degreesToTurnAbs;
+    
+        degreesToTurnAbs = Math.abs(degreesToTurn);
+    
+        if (degreesToTurnAbs <= 60.0) 
+        {
+            pidTurnVelocityFps = 10.0;
+            pidTurnDecelRate   = 0.98;
+            pidTurnDecelAngle  = 10.0;
+        }
+        else if (degreesToTurnAbs <= 75.0) 
+        {
+            pidTurnVelocityFps = 12.0;
+            pidTurnDecelRate   = 0.98;
+            pidTurnDecelAngle  = 12.0;
+        }
+        else if (degreesToTurnAbs <= 105.0) 
+        {
+            pidTurnVelocityFps = 14.0;
+            pidTurnDecelRate   = 0.98;
+            pidTurnDecelAngle  = 14.0;
+        }
+        else if (degreesToTurnAbs <= 140.0) 
+        {
+            pidTurnVelocityFps = 14.0;
+            pidTurnDecelRate   = 0.98;
+            pidTurnDecelAngle  = 16.0;
+        }
+        
+        else // degreesToTurnAbs > 140.0
+        { 
+            pidTurnVelocityFps = 16.0;
+            pidTurnDecelRate   = 0.98;
+            pidTurnDecelAngle  = 18.0;
+        }
+    
+    }   //End of setPidValues()
 
 
     /***************************************************************************
@@ -603,5 +738,26 @@ public class CatzAutonomous
             System.out.printf("navX: %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n", functionTimer.get(), deltaT,
                     currentAngle, currentError, deltaError, derivative, power);
         }
+    }
+
+    public void logTurnInPlaceData()
+    {
+        CatzLog data; 
+        data = new CatzLog(pidTurnkP, pidTurnkD, loopDelay, PID_TURN_FILTER_CONSTANT,-999.0, -999.0, -999.0, -999.0,
+        -999.0, -999.0, -999.0, -999.0, -999.0,-999.0, -999.0,-999.0);
+        Robot.dataCollection.logData.add(data);
+    }
+
+    public void logTurnInPlaceConfigValues()
+    {
+        CatzLog data; 
+        data = new CatzLog(targetAngle, pidTurnVelocityFps, pidTurnDecelRate, 
+                                                            pidTurnDecelAngle,
+                                                            Robot.driveTrain.LT_PID_P, Robot.driveTrain.LT_PID_F,
+                                                            Robot.driveTrain.RT_PID_P, Robot.driveTrain.RT_PID_F,
+                                                            Robot.driveTrain.currentDrvTrainGear,
+                                                            Robot.pdp.getVoltage(),
+                                                            -999.0,-999.0,-999.0,-999.0,-999.0,-999.0);
+        Robot.dataCollection.logData.add(data);
     }
 }

@@ -8,6 +8,7 @@ import com.revrobotics.EncoderType;
 import com.revrobotics.CANSparkMaxLowLevel.MotorType;
 import com.revrobotics.CANSparkMax.IdleMode;
 import com.revrobotics.CANDigitalInput;
+import com.revrobotics.CANEncoder;
 import com.revrobotics.CANDigitalInput.LimitSwitchPolarity;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.DataLogger.CatzLog;
@@ -18,6 +19,8 @@ public class CatzIntake
 {
     public WPI_TalonSRX intakeRollerMC;
     public CANSparkMax intakeDeployMC;
+
+    public CANEncoder intakeDeployEncoder;
 
     private final int INTAKE_ROLLER_MC_CAN_ID = 31;
     private final int INTAKE_DEPLOY_MC_CAN_ID = 30; 
@@ -35,7 +38,7 @@ public class CatzIntake
 
     private final double INTAKE_MOTOR_POWER_START_DEPLOY =  0.25;
     private final double INTAKE_MOTOR_POWER_END_DEPLOY   =  0.0;
-    private final double INTAKE_MOTOR_POWER_START_STOW   = -0.25;
+    private final double INTAKE_MOTOR_POWER_START_STOW   = -0.40;
     private final double INTAKE_MOTOR_POWER_END_STOW     = -0.25;
 
     private Thread intakeThread;
@@ -54,9 +57,9 @@ public class CatzIntake
 
     final double INTAKE_THREAD_WAITING_TIME       = 0.020;
     final double DEPLOY_REDUCE_POWER_TIME_OUT_SEC = 0.400;
-    final double STOW_REDUCE_POWER_TIME_OUT_SEC   = 0.350;
+    final double STOW_REDUCE_POWER_TIME_OUT_SEC   = 0.450;
 
-    final double intakeStowMotorGearRatio = 1/10;
+    final double intakeStowMotorGearRatio = 1.0/49.0;
 
     private double currentIntakeStowPosition;
     private double lastIntakeStowPosition;
@@ -64,13 +67,13 @@ public class CatzIntake
     private double currentIntakeStowPower;
     private int intakeCheckHardstopCount = 0;
 
-    private final int INTAKE_MAX_HARD_STOP_COUNT          = 3;
-    private final double INTAKE_STOW_HOLD_THRESHOLD       = 5.0;
-    private final double INTAKE_CHECK_HARD_STOP_THRESHOLD = 5.0;
+    private final int INTAKE_MAX_HARD_STOP_COUNT          = 7;
+    private final double INTAKE_STOW_HOLD_THRESHOLD       = 15.0;
+    private final double INTAKE_CHECK_HARD_STOP_THRESHOLD = 1.0;
 
-    private double intakeStowHoldkP = 0.001;
+    private double intakeStowHoldkP = 0.0001;
 
-    private boolean dataCollectionState = true; //true for on, flase for off. Turns on or off datacollection for this class
+    private boolean dataCollectionState = false; //true for on, flase for off. Turns on or off datacollection for this class
     private CatzLog data;
 
     private Timer intakeTimer;
@@ -80,6 +83,8 @@ public class CatzIntake
         intakeRollerMC = new WPI_TalonSRX(INTAKE_ROLLER_MC_CAN_ID);
         intakeDeployMC = new CANSparkMax(INTAKE_DEPLOY_MC_CAN_ID, MotorType.kBrushless);
         
+        intakeDeployEncoder = new CANEncoder(intakeDeployMC);
+
         intakeDeployedLimitSwitch = intakeDeployMC.getForwardLimitSwitch(LimitSwitchPolarity.kNormallyOpen);
         intakeStowedLimitSwitch   = intakeDeployMC.getReverseLimitSwitch(LimitSwitchPolarity.kNormallyOpen);
 
@@ -127,7 +132,6 @@ public class CatzIntake
                     case INTAKE_MODE_DEPLOY_START:
                         intakeDeployMC.set(INTAKE_MOTOR_POWER_START_DEPLOY);
                         intakeMode = INTAKE_MODE_DEPLOY_REDUCE_POWER;
-
                         timeCounter++;
                     break;
 
@@ -142,6 +146,7 @@ public class CatzIntake
                     break;
 
                     case INTAKE_MODE_STOW_START:
+                        intakeDeployEncoder.setPosition(0);
                         intakeDeployMC.set(INTAKE_MOTOR_POWER_START_STOW);
                         intakeMode = INTAKE_MODE_STOW_REDUCE_POWER;
 
@@ -195,6 +200,7 @@ public class CatzIntake
 
                         if(dataCollectionState)
                         {
+                            System.out.println("current: " + currentIntakeStowPosition + " target: " + targetIntakeStowPosition + " error: " + error + " power: " + power);
                             data = new CatzLog(currentTime, targetIntakeStowPosition, currentIntakeStowPosition, error, power, 
                                                 -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0, -999.0);
                             Robot.dataCollection.logData.add(data);
@@ -223,7 +229,7 @@ public class CatzIntake
     }
 
     public double getIntakeDeployPositionDegrees(){
-        return Math.abs(intakeDeployMC.getEncoder(EncoderType.kHallSensor, 42).getPosition() * intakeStowMotorGearRatio * 360.0);
+        return Math.abs(intakeDeployEncoder.getPosition() * intakeStowMotorGearRatio * 360.0);
     }
 
     public double clamp(double value, double min, double max){

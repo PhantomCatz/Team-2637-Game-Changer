@@ -246,6 +246,12 @@ public class CatzDriveTrain
         
     }
 
+    public void setTurnInPlaceVelocity(double velocity) 
+    {
+        drvTrainMtrCtrlLTFrnt.set(TalonFXControlMode.Velocity, (velocity));
+        drvTrainMtrCtrlRTFrnt.set(TalonFXControlMode.Velocity, (velocity));  
+    }
+
     public double getVelocityError(String side, double targetVelocity)
     {
         double velocityError = 0.0;

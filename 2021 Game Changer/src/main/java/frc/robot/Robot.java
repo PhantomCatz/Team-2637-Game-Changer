@@ -89,23 +89,26 @@ public class Robot extends TimedRobot
     dataCollection.dataCollectionInit(dataArrayList);
     dataCollectionTimer.reset();
     dataCollectionTimer.start();
-    dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_STRAIGHT);
+    dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_TURN);
     //dataCollection.setLogDataID(dataCollection.LOG_ID_DRV_TURN);
     dataCollection.startDataCollection();
 
+    intake.intakeControl();
   }
 
   @Override
 
   public void robotPeriodic() 
   {
-    
+    SmartDashboard.putNumber("RPM", shooter.getRPM());
+    SmartDashboard.putNumber("Rotation", navx.getAngle());
   }
 
   @Override
   public void autonomousInit() 
   {
     //auton.driveStraight(120, 14, 100);
+    auton.TurnInPlace(90, 1000);
   }
 
   @Override
